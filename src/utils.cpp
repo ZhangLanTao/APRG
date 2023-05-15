@@ -9,6 +9,7 @@ void DepthToPointCloud(cv::Mat & d_img, float fx, float fy, float cx, float cy, 
     int width = d_img.cols;
     cloud_array.setZero(height*width,3);
 
+#pragma omp parallel for default(none) shared(d_img, height, width, fx, fy, cx, cy, z_min, cloud_array)
     for(int r=0; r< height; r++){
         for(auto c=0; c< width; c++){
             float z = d_img.at<float>(r, c);
