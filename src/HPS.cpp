@@ -107,12 +107,12 @@ omp_set_num_threads(12);
         wait_to_process.emplace_back(vector<int>{i});
         while (!wait_to_process.empty()) {
             auto this_ind = wait_to_process.back();
-
             wait_to_process.pop_back();
             PointsSum points_sum = m_points_sum_pyramid.Index(this_ind);
 
-            if(points_sum.IsPlane()){
-                m_patch_segment_result.Set(this_ind, this_ind.size());
+            PlaneParams plane_params = points_sum.FitPlane();
+            if(PointsSum::IsPlane(plane_params)){
+                m_patch_segment_result.Set(this_ind, this_ind.size(), plane_params);
 #ifdef DEBUG
                 DrawPatchByHierachicalIndex(this_ind, m_gray_img);
 #endif

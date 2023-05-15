@@ -8,6 +8,8 @@ using std::vector;
 
 struct PlaneParams {
     double a,b,c,d,MSE,score;
+    PlaneParams(double a, double b, double c, double d, double MSE, double score) : a(a), b(b), c(c), d(d), MSE(MSE), score(score) {};
+    PlaneParams() : a(0), b(0), c(0), d(0), MSE(9999), score(0) {};
 };
 
 class PointsSum {
@@ -24,9 +26,13 @@ public:
     int num_points = 0;
     int jump_cnt = 0;
 
+    PlaneParams FitPlane() const;
+
     static PointsSum Add(const PointsSum &a, const PointsSum &b, const PointsSum &c, const PointsSum &d);
-    bool IsPlane();
-    PlaneParams FitPlane();
+    static bool IsPlane(PlaneParams &plane_params) {
+        if (plane_params.MSE > 0.1) return false;
+        return true;
+    };
 
 };
 

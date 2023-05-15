@@ -148,18 +148,10 @@ PointsSum PointsSum::Add(const PointsSum &a, const PointsSum &b, const PointsSum
     return result;
 }
 
-bool PointsSum::IsPlane() {
-    if (this->jump_cnt > 2) return false;
-    if (this->num_points < 50) return false;
+PlaneParams PointsSum::FitPlane() const {
+    if (this->jump_cnt > 2) return {};
+    if (this->num_points < 50) return {};
 
-    PlaneParams plane_params = this->FitPlane();
-
-    if (plane_params.MSE > 0.1) return false;
-
-    return true;
-}
-
-PlaneParams PointsSum::FitPlane() {
     double mean[3];
     mean[0] = sum_x / num_points;
     mean[1] = sum_y / num_points;
