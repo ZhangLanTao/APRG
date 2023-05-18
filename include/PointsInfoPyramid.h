@@ -30,7 +30,7 @@ public:
 
     static PointsSum Add(const PointsSum &a, const PointsSum &b, const PointsSum &c, const PointsSum &d);
     static bool IsPlane(PlaneParams &plane_params) {
-        if (plane_params.MSE > 0.1) return false;
+        if (plane_params.MSE > 1) return false;
         return true;
     };
 

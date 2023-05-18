@@ -9,16 +9,19 @@ using std::vector;
 class PatchSegmentResult {
 private:
     int m_index_layers;
-    int m_num_items;
+    int m_num_smallest_patches;
     int *m_offsets_each_level;
-    int *m_data_segment;
+    unsigned char *m_data_patch_level;
+    unsigned short *m_data_patch_label;
     PlaneParams *m_data_plane_params;
 public:
     PatchSegmentResult();
+    PatchSegmentResult(PatchSegmentResult &patch_segment_result);
     void Initialize(const int *num_childs_each_level, int max_index_layers);
-    void Set(vector<int> ind, int value, PlaneParams plane_params);
-    int GetSegmentResult(vector<int> ind) const;
-    PlaneParams GetPlaneParameter(vector<int> ind) const;
+    void SetPatchSegmentResult(vector<int> ind, int value, PlaneParams plane_params);
+    void SetPatchLabel(vector<int> ind, int label);
+    int GetPatchSegmentResult(vector<int> ind) const;
+    PlaneParams GetPatchPlaneParameter(vector<int> ind) const;
 
     ~PatchSegmentResult();
 };
