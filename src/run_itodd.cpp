@@ -26,7 +26,6 @@ int main() {
     vector<scene_info> scene_infos;
     LoadSceneInfos(d, scene_infos);
 
-    HPS hps(ITODD::IMG_HGT, ITODD::IMG_WID, 4, 3, 6);
     // 遍历json里面写的所有场景
     for (auto item: scene_infos) {
         int i = item.number;
@@ -35,7 +34,7 @@ int main() {
         float cx = item.cx;
         float cy = item.cy;
 
-        // Read frame i
+         // Read frame i
         stringstream gray_img_path, d_img_path;
 
         gray_img_path << data_path << "/gray/" << setw(6) << setfill('0') << i << ".tif";
@@ -49,8 +48,12 @@ int main() {
         if (!gray_img.data || !d_img.data) break;
 
 
-        Eigen::MatrixX3f cloud_array;
+        Eigen::MatrixXf cloud_array;
         DepthToPointCloud(d_img, fx, fy, cx, cy, 10, cloud_array);
+
+//        SavePc(cloud_array);
+
+        HPS hps(ITODD::IMG_HGT, ITODD::IMG_WID, 4, 3, 6);
         hps.SetPointCloud(cloud_array);
         hps.SetGrayImg(gray_img);
 

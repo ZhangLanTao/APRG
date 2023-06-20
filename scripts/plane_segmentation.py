@@ -37,7 +37,7 @@ def segment(depth, img_show, upleft_xy, patch_size, camera_mtx=None, tree_level=
         print('平面度', eig_val[1]/eig_val[0])
         segment_result.append(tree_level)
         cv2.imshow('img_show', img_show)
-        cv2.waitKey(0)
+        cv2.waitKey(1)
         return
     # else:
     #     cv2.rectangle(img_show, upleft_xy, (upleft_xy[0]+w, upleft_xy[1]+h), (0, 255, 0), 2)
@@ -131,8 +131,8 @@ def reigon_growing(img_show, segment_result, start_index):
             if result is not None:
                 draw_patch_by_name(img_show, result)
                 cv2.imshow("neighbor", img_show)
-                video_out.write(img_show)
-                cv2.waitKey(1)
+                # video_out.write(img_show)
+                cv2.waitKey()
                 reigon_growing(img_show, segment_result, result)
 
 
@@ -157,8 +157,14 @@ for t in test_targets:
     tic = time.time()
     h, w = depth.shape
     patch_size = h // 3
-    for i in range(12):
-        segment(depth, color, (patch_size * (i % 4), patch_size * (i // 4)), patch_size, camera_K, [i])
+    # for i in range(12):
+    #     segment(depth, color, (patch_size * (i % 4), patch_size * (i // 4)), patch_size, camera_K, [i])
+    segment_result.append([0])
+    segment_result.append([1,0,0])
+    segment_result.append([1,0,1])
+    segment_result.append([1,1,0])
+    segment_result.append([1,1,1])
+    segment_result.append([2])
     toc = time.time()
     print('time: ', toc-tic)
 

@@ -1,8 +1,9 @@
 #include "HPS.h"
 #include "utils.h"
-#include "PointsInfoPyramid.h"
+#include "PointsSumPyramid.h"
 #include "PatchSegmentResult.h"
 #include "PlaneSeg.h"
+#include <iostream>
 
 HPS::HPS(int img_hight, int img_width, int block_num_x, int block_num_y, int tree_level) :
         m_img_hight(img_hight), m_img_width(img_width),
@@ -10,79 +11,100 @@ HPS::HPS(int img_hight, int img_width, int block_num_x, int block_num_y, int tre
         m_num_tree_layers(tree_level) {
 
     m_patchs_each_level = new int[tree_level];
-    m_patchs_each_level[0] = 12;
+    m_patchs_each_level[0] = m_block_num_x * m_block_num_y;
     for (int i = 1; i < tree_level; i++) m_patchs_each_level[i] = 4;
 
-    m_block_sizes = new int[tree_level];
+    m_patch_sizes = new int[tree_level];
     int temp = img_width / block_num_x;
-    m_block_sizes[0] = temp;
+    m_patch_sizes[0] = temp;
     for (int i = 1; i < tree_level; ++i) {
         temp /= 2;
-        m_block_sizes[i] = temp;
+        m_patch_sizes[i] = temp;
     }
 
-    m_points_sum_pyramid.Initialize(m_patchs_each_level, m_num_tree_layers, m_block_sizes[m_num_tree_layers - 1]);
+    m_points_sum_pyramid.Initialize(m_patchs_each_level, m_num_tree_layers, m_patch_sizes[m_num_tree_layers - 1]);
     m_patch_segment_result.Initialize(m_patchs_each_level, m_num_tree_layers);
 }
 
 
 void HPS::Process() {
-    auto t1 = cv::getTickCount();
-
     OrganizePointCloud();
+    auto t1 = cv::getTickCount();
     m_points_sum_pyramid.PreComputeSum(m_organized_pointcloud);
     RecursivePlaneSegment();
-
+    PatchwiseRegionGrowing();
     auto t2 = cv::getTickCount();
+
 
     auto fps = cv::getTickFrequency() / (t2 - t1);
     std::cout << "FPS: " << fps << endl;
-
-    int ind[]{0};
-    m_points_sum_pyramid.Index(ind, 1).sum_x = 1;
-
-    vector<int> ind_test;
-    ind_test.emplace_back(0);
-    PointsSum out = m_points_sum_pyramid.Index(ind_test);
-
-
 }
 
 void HPS::GetHirachicalIndexFromRowCol(int row, int col, int *hirachical_index) {
 //     判断row col 能否被block_size整除
-    if (row % m_block_sizes[m_num_tree_layers - 1] != 0 || col % m_block_sizes[m_num_tree_layers - 1] != 0) {
+    if (row % m_patch_sizes[m_num_tree_layers - 1] != 0 || col % m_patch_sizes[m_num_tree_layers - 1] != 0) {
         std::cout << "row or col can not be divided by block_size" << endl;
         return;
     }
-    hirachical_index[0] = row / m_block_sizes[0] * 4 + col / m_block_sizes[0];
-    row = row % m_block_sizes[0];
-    col = col % m_block_sizes[0];
+    hirachical_index[0] = row / m_patch_sizes[0] * 4 + col / m_patch_sizes[0];
+    row = row % m_patch_sizes[0];
+    col = col % m_patch_sizes[0];
     for (int i = 1; i < m_num_tree_layers; i++) {
-        hirachical_index[i] = row / m_block_sizes[i] * 2 + col / m_block_sizes[i];
-        row = row % m_block_sizes[i];
-        col = col % m_block_sizes[i];
+        hirachical_index[i] = row / m_patch_sizes[i] * 2 + col / m_patch_sizes[i];
+        row = row % m_patch_sizes[i];
+        col = col % m_patch_sizes[i];
     }
 }
 
-vector<int> HPS::GetRowColFromHirachicalIndex(vector<int> hirachical_index) {
-    int row = 0, col = 0;
-    row += (hirachical_index[0] / 4) * m_block_sizes[0];
-    col += (hirachical_index[0] % 4) * m_block_sizes[0];
-    for (int i = 1; i < hirachical_index.size(); i++) {
-        row += (hirachical_index[i] / 2) * m_block_sizes[i];
-        col += (hirachical_index[i] % 2) * m_block_sizes[i];
+void HPS::GetHirachicalIndexFromRowCol(int row, int col, vector<int> hirachical_index) {
+    // 判断row col 能否被block_size整除
+    if (row % m_patch_sizes[m_num_tree_layers - 1] != 0 || col % m_patch_sizes[m_num_tree_layers - 1] != 0) {
+        std::cout << "row or col can not be divided by block_size" << endl;
+        return;
     }
-    return vector<int>{row, col};
+    hirachical_index[0] = row / m_patch_sizes[0] * 4 + col / m_patch_sizes[0];
+    row = row % m_patch_sizes[0];
+    col = col % m_patch_sizes[0];
+    for (int i = 1; i < m_num_tree_layers; i++) {
+        hirachical_index[i] = row / m_patch_sizes[i] * 2 + col / m_patch_sizes[i];
+        row = row % m_patch_sizes[i];
+        col = col % m_patch_sizes[i];
+    }
+}
+
+vector<int> HPS::GetHirachicalIndexFromRowColLevel(int row, int col, int level) {
+    vector<int> hirachical_index(level + 1);
+    hirachical_index[0] = row / m_patch_sizes[0] * 4 + col / m_patch_sizes[0];
+    row = row % m_patch_sizes[0];
+    col = col % m_patch_sizes[0];
+    for (int i = 1; i <= level; i++) {
+        hirachical_index[i] = row / m_patch_sizes[i] * 2 + col / m_patch_sizes[i];
+        row = row % m_patch_sizes[i];
+        col = col % m_patch_sizes[i];
+    }
+    return hirachical_index;
+}
+
+vector<int> HPS::GetRowColLevelFromHirachicalIndex(vector<int> hirachical_index) {
+    int row = 0, col = 0, level = hirachical_index.size() - 1;
+    row += (hirachical_index[0] / 4) * m_patch_sizes[0];
+    col += (hirachical_index[0] % 4) * m_patch_sizes[0];
+    for (int i = 1; i < hirachical_index.size(); i++) {
+        row += (hirachical_index[i] / 2) * m_patch_sizes[i];
+        col += (hirachical_index[i] % 2) * m_patch_sizes[i];
+    }
+    return vector<int>{row, col, level};
 }
 
 
 void HPS::OrganizePointCloud() {
     m_organized_pointcloud.setZero(m_img_hight * m_img_width, 3);
     // 遍历所有最小块的格点
-    int min_block_size = m_block_sizes[m_num_tree_layers - 1];
+    int min_block_size = m_patch_sizes[m_num_tree_layers - 1];
 #pragma omp parallel for shared(min_block_size) default(none)
     for (int r = 0; r < m_img_hight; r += min_block_size) {
         for (int c = 0; c < m_img_width; c += min_block_size) {
+//            vector<int> hirachical_index(m_num_tree_layers);
             int hirachical_index[m_num_tree_layers];
             GetHirachicalIndexFromRowCol(r, c, hirachical_index); // 获取当前格点的层次索引
             int dst_offset = GetOffsetOfHirachicalIndex(hirachical_index);  // 层次索引对应在organized_pointcloud中的偏移量（起始位置）
@@ -98,9 +120,11 @@ void HPS::OrganizePointCloud() {
 
 void HPS::RecursivePlaneSegment() {
 // 读取计算points_sum_pyramid的数据，判断，把结果写到patch_segment_result里
-omp_set_num_threads(12);
+#ifdef RELEASE
+omp_set_num_threads(8);
 #pragma omp parallel for default(none)
-    for (int i = 0; i < 12; i++) {
+#endif
+    for (int i = 0; i < m_patchs_each_level[0]; i++) {
         vector<vector<int>> wait_to_process;
         wait_to_process.reserve(4 * m_num_tree_layers);
 
@@ -108,18 +132,46 @@ omp_set_num_threads(12);
         while (!wait_to_process.empty()) {
             auto this_ind = wait_to_process.back();
             wait_to_process.pop_back();
-            PointsSum points_sum = m_points_sum_pyramid.Index(this_ind);
+            PointsSum point_sum = m_points_sum_pyramid.Index(this_ind);
 
-            PlaneParams plane_params = points_sum.FitPlane();
-            if(PointsSum::IsPlane(plane_params)){
-                m_patch_segment_result.Set(this_ind, this_ind.size(), plane_params);
-#ifdef DEBUG
-                DrawPatchByHierachicalIndex(this_ind, m_gray_img);
-#endif
+            PlaneParams plane_params = point_sum.FitPlane();
+#ifdef false
+            if (plane_params.MSE<0){
+                cv::Mat image_show = m_gray_img.clone();
+                DrawPatchByHierachicalIndex(this_ind, image_show, cv::Scalar(255,0,0), 2);
+                cv::imshow("MSE<0", image_show);
+                cv::waitKey();
+                Eigen::MatrixXf patch_points = GetPatchPoints(this_ind);
+                DrawPc(patch_points);
             }
-            else{
-                if(this_ind.size() < m_num_tree_layers){
-                    for(int j = 0; j < 4; j++){
+#endif
+
+            if (plane_params.IsPlane()) {
+#ifdef false
+                std::cout<<"MSE:  "<<plane_params.MSE<<"  Is plane"<<std::endl;
+                cv::Mat image_show = m_gray_img.clone();
+                DrawPatchByHierachicalIndex(this_ind, image_show, cv::Scalar(255,0,0), 2);
+                cv::imshow("Is / Isn't plane", image_show);
+                cv::waitKey(100);
+                Eigen::MatrixXf patch_points = GetPatchPoints(this_ind);
+                DrawPc(patch_points);
+#endif
+                m_patch_segment_result.SetPatchSegmentResult(this_ind, this_ind.size(), plane_params);
+//#ifdef DEBUG
+                // DrawPatchByHierachicalIndex(this_ind, m_gray_img);
+//#endif
+            } else {
+#ifdef false
+                std::cout<<"MSE:  "<<plane_params.MSE<<"  Is not plane"<<std::endl;
+                cv::Mat image_show = m_gray_img.clone();
+                DrawPatchByHierachicalIndex(this_ind, image_show, cv::Scalar(255,0,0), 2);
+                cv::imshow("Is / Isn't plane", image_show);
+                cv::waitKey(100);
+                Eigen::MatrixXf patch_points = GetPatchPoints(this_ind);
+                DrawPc(patch_points);
+#endif
+                if (this_ind.size() < m_num_tree_layers) {
+                    for (int j = 0; j < 4; j++) {
                         vector<int> new_ind = this_ind;
                         new_ind.emplace_back(j);
                         wait_to_process.emplace_back(new_ind);
@@ -129,14 +181,157 @@ omp_set_num_threads(12);
         }
     }
 #ifdef DEBUG
+    DrawPatchSegmentResult(m_gray_img);
     cv::imshow("img_copy", m_gray_img);
     cv::waitKey();
 #endif
 }
 
-void HPS::DrawPatchByHierachicalIndex(const vector<int> &hierachical_index, cv::Mat &img_copy) {
-    vector<int> row_col = GetRowColFromHirachicalIndex(hierachical_index);
-    int patch_size = m_block_sizes[hierachical_index.size() - 1];
-    cv::rectangle(img_copy, cv::Rect(row_col[1], row_col[0], patch_size, patch_size), cv::Scalar(0, 0, 255), 2);
+#ifdef DEBUG
+cv::Scalar color;
+#endif
+void HPS::PatchwiseRegionGrowing() {
+    unsigned short cnt = 0;
+    while (1) {
+        vector<int> seed_index = m_patch_segment_result.GetRemainingLargestPatchIndex();
+        if (seed_index.empty()) break;
+
+        // 还有seed可选，则认新增一个新的连通区域
+        ++cnt;
+        m_patch_segment_result.ResetVisited();
+#ifdef DEBUG
+        color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
+        DrawPatchByHierachicalIndex(seed_index, m_gray_img, color, -1);
+#endif
+        RecursiveRegionGrowing(seed_index, cnt);
+
+    }
+
 }
 
+void HPS::RecursiveRegionGrowing(const vector<int>& seed_index, unsigned short label) {
+    m_patch_segment_result.SetPatchLabel(seed_index, label);
+    m_patch_segment_result.SetPatchVisited(seed_index);
+    vector<vector<int>> neighbor_indexs = GetAllPossibleSmallerNeighborPatchIndexs(seed_index);
+
+    for (auto neighbor_index : neighbor_indexs) {
+//        if (!m_patch_segment_result.Has(neighbor_index)) continue;
+        vector<int> most_similar_patch_index = m_patch_segment_result.GetMostSimilarPatchIndex(neighbor_index);
+        if (most_similar_patch_index.empty()) continue;
+        if (m_patch_segment_result.IsVisited(most_similar_patch_index)) continue;
+        if (m_patch_segment_result.IsLabled(most_similar_patch_index)) continue;
+
+        m_patch_segment_result.SetPatchVisited(most_similar_patch_index);
+
+        PlaneParams seed_plane_params = m_patch_segment_result.GetPatchPlaneParameter(seed_index);
+        PlaneParams neighbor_plane_params = m_patch_segment_result.GetPatchPlaneParameter(most_similar_patch_index);
+#ifdef DEBUG
+        DrawPatchByHierachicalIndex(most_similar_patch_index, m_gray_img, color, 3);
+        cv::imshow("neighbor", m_gray_img);
+        cv::waitKey(1);
+#endif
+        if (PlaneParams::IsCoplanar(seed_plane_params, neighbor_plane_params)) {
+            m_patch_segment_result.SetPatchLabel(most_similar_patch_index, label);
+#ifdef DEBUG
+            DrawPatchByHierachicalIndex(most_similar_patch_index, m_gray_img, color, -1);
+            cv::imshow("coplane", m_gray_img);
+            cv::waitKey(1);
+#endif
+            RecursiveRegionGrowing(most_similar_patch_index, label);
+        }
+    }
+
+}
+
+
+vector<vector<int>> HPS::GetAllPossibleSmallerNeighborPatchIndexs(const vector<int>& ind) {
+    vector<vector<int>> neighbors;
+    for (int i = ind.size()-1; i < m_num_tree_layers; i++) {
+        vector<vector<int>> neighbors_level_i = GetPossibleNeighborPatchIndexs(ind, i);
+        for (const auto& neighbor:neighbors_level_i) {
+            neighbors.emplace_back(neighbor);
+        }
+    }
+    return neighbors;
+}
+
+vector<vector<int>> HPS::GetPossibleNeighborPatchIndexs(const vector<int> ind, unsigned short level_i) {
+    vector<vector<int>> neighbors;
+    vector<int> r_c_level_index= GetRowColLevelFromHirachicalIndex(ind);
+    int r(r_c_level_index[0]), c(r_c_level_index[1]), level(r_c_level_index[2]);
+    int r_nb_u, r_nb_d, c_nb_l, c_nb_r;
+
+    r_nb_u = r - m_patch_sizes[level_i];
+    if (r_nb_u >= 0) {
+        for (int c_nb_u = c; c_nb_u < c + m_patch_sizes[level]; c_nb_u+=m_patch_sizes[level_i]) {
+            if (c_nb_u < m_img_width){
+                neighbors.emplace_back(GetHirachicalIndexFromRowColLevel(r_nb_u, c_nb_u, level_i));
+            }
+        }
+    }
+
+    r_nb_d = r + m_patch_sizes[level];
+    if (r_nb_d < m_img_hight) {
+        for (int c_nb_d = c; c_nb_d < c + m_patch_sizes[level]; c_nb_d+=m_patch_sizes[level_i]) {
+            if (c_nb_d < m_img_width){
+                neighbors.emplace_back(GetHirachicalIndexFromRowColLevel(r_nb_d, c_nb_d, level_i));
+            }
+        }
+    }
+
+    c_nb_l = c - m_patch_sizes[level_i];
+    if (c_nb_l >= 0) {
+        for (int r_nb_l = r; r_nb_l < r + m_patch_sizes[level]; r_nb_l+=m_patch_sizes[level_i]) {
+            if (r_nb_l < m_img_hight){
+                neighbors.emplace_back(GetHirachicalIndexFromRowColLevel(r_nb_l, c_nb_l, level_i));
+            }
+        }
+    }
+
+    c_nb_r = c + m_patch_sizes[level];
+    if (c_nb_r < m_img_width) {
+        for (int r_nb_r = r; r_nb_r < r + m_patch_sizes[level]; r_nb_r+=m_patch_sizes[level_i]) {
+            if (r_nb_r < m_img_hight) {
+                neighbors.emplace_back(GetHirachicalIndexFromRowColLevel(r_nb_r, c_nb_r, level_i));
+            }
+        }
+    }
+    return neighbors;
+}
+
+
+
+void HPS::DrawPatchByHierachicalIndex(const vector<int> &hierachical_index, cv::Mat &img_copy, cv::Scalar color, int thickness) {
+    vector<int> row_col_level = GetRowColLevelFromHirachicalIndex(hierachical_index);
+    int patch_size = m_patch_sizes[row_col_level[2]];
+    cv::rectangle(img_copy, cv::Rect(row_col_level[1], row_col_level[0], patch_size, patch_size), color, thickness);
+}
+
+void HPS::DrawPatchSegmentResult(cv::Mat &img_copy) {
+    vector<vector<int>> wait_to_draw;
+    wait_to_draw.reserve(4 * m_num_tree_layers);
+    for (int i = 0; i < m_patchs_each_level[0]; i++) {
+        wait_to_draw.emplace_back(vector<int>{i});
+        while (!wait_to_draw.empty()) {
+            auto this_ind = wait_to_draw.back();
+            wait_to_draw.pop_back();
+            if (m_patch_segment_result.GetPatchSegmentLevel(this_ind) == this_ind.size()) {
+                DrawPatchByHierachicalIndex(this_ind, m_gray_img, cv::Scalar(0, 0, 255), 2);
+            } else {
+                if (this_ind.size() < m_num_tree_layers) {
+                    for (int j = 0; j < 4; j++) {
+                        vector<int> new_ind = this_ind;
+                        new_ind.emplace_back(j);
+                        wait_to_draw.emplace_back(new_ind);
+                    }
+                }
+            }
+        }
+    }
+}
+
+Eigen::MatrixXf HPS::GetPatchPoints(const vector<int> &ind) {
+    int offset = GetOffsetOfHirachicalIndex(ind);
+    int patch_size = m_patch_sizes[ind.size()-1];
+    return m_organized_pointcloud.block(offset, 0, patch_size * patch_size, 3);
+}
