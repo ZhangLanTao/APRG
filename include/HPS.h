@@ -15,14 +15,14 @@ using namespace std;
 
 class HPS {
 private:
-    int m_img_hight;
+    int m_img_height;
     int m_img_width;
 
 // 图像递归分割相关
     int m_block_num_x;  // 首先将整个图像分成 m_block_num_x * m_block_num_y 个正方形块
     int m_block_num_y;
     int m_num_tree_layers; // 递归分割的层数
-    int *m_patchs_each_level;
+    int *m_patches_each_level;
 
 // 每层block的尺寸
     int *m_patch_sizes;
@@ -51,31 +51,31 @@ private:
 
     Eigen::MatrixXf GetPatchPoints(const vector<int> &ind);
 
-    void GetHirachicalIndexFromRowCol(int row, int col, int *hierachical_index);
+    void GetHierarchicalIndexFromRowCol(int row, int col, int *hierarchical_index);
 
-    void GetHirachicalIndexFromRowCol(int row, int col, vector<int> hirachical_index);
+    void GetHierarchicalIndexFromRowCol(int row, int col, vector<int> hierarchical_index);
 
-    vector<int> GetHirachicalIndexFromRowColLevel(int row, int col, int level);
+    vector<int> GetHierarchicalIndexFromRowColLevel(int row, int col, int level);
 
-    vector<int> GetRowColLevelFromHirachicalIndex(vector<int> hirachical_index);
+    vector<int> GetRowColLevelFromHierarchicalIndex(vector<int> hierarchical_index);
 
-    int GetOffsetOfHirachicalIndex(const int *hirachical_index) {
+    int GetOffsetOfHierarchicalIndex(const int *hierarchical_index) {
         int begin = 0;
         for (int i = 0; i < m_num_tree_layers; i++) {
-            begin += hirachical_index[i] * m_patch_sizes[i] * m_patch_sizes[i];
+            begin += hierarchical_index[i] * m_patch_sizes[i] * m_patch_sizes[i];
         }
         return begin;
     };
 
-    int GetOffsetOfHirachicalIndex(const vector<int> hirachical_index) {
+    int GetOffsetOfHierarchicalIndex(const vector<int> hierarchical_index) {
         int begin = 0;
-        for (int i = 0; i < hirachical_index.size(); i++) {
-            begin += hirachical_index[i] * m_patch_sizes[i] * m_patch_sizes[i];
+        for (int i = 0; i < hierarchical_index.size(); i++) {
+            begin += hierarchical_index[i] * m_patch_sizes[i] * m_patch_sizes[i];
         }
         return begin;
     };
 public:
-    HPS(int img_hight, int img_width, int block_num_x, int block_num_y, int tree_level);
+    HPS(int img_height, int img_width, int block_num_x, int block_num_y, int tree_level);
 
     inline void SetPointCloud(Eigen::MatrixXf cloud_array) { m_cloud_array = cloud_array; }; //  一定要值传递，否则性能下降，未知原因，猜测与eigen内部实现有关
 
@@ -83,19 +83,19 @@ public:
 
     void Process();
 
-    void DrawPatchByHierachicalIndex(const vector<int> &hierachical_index, cv::Mat &img_copy, cv::Scalar color,
+    void DrawPatchByHierarchicalIndex(const vector<int> &hierachical_index, cv::Mat &img_copy, cv::Scalar color,
                                      int thickness);
 
     void DrawPatchSegmentResult(cv::Mat &img_copy);
 
     ~HPS() {
-        delete[] m_patchs_each_level;
+        delete[] m_patches_each_level;
         delete[] m_patch_sizes;
     };
 
-    vector<vector<int>> GetAllPossibleSmallerNeighborPatchIndexs(const vector<int> &ind);
+    vector<vector<int>> GetAllPossibleSmallerNeighborPatchIndexes(const vector<int> &ind);
 
-    vector<vector<int>> GetPossibleNeighborPatchIndexs(vector<int> ind, unsigned short level);
+    vector<vector<int>> GetPossibleNeighborPatchIndexes(vector<int> ind, unsigned short level);
 
 };
 

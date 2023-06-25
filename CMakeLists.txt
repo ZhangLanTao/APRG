@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(HirachicalPlaneSegmentation)
+project(HierarchicalPlaneSegmentation)
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -25,6 +25,6 @@ endif ()
 
 file(GLOB_RECURSE srcs src/*.cpp)
 
-add_executable(HirachicalPlaneSegmentation ${srcs})
+add_executable(HierarchicalPlaneSegmentation ${srcs})
 
-target_link_libraries(HirachicalPlaneSegmentation ${OpenCV_LIBS} Eigen3::Eigen Open3D::Open3D MKL::MKL OpenMP::OpenMP_CXX)
+target_link_libraries(HierarchicalPlaneSegmentation ${OpenCV_LIBS} Eigen3::Eigen Open3D::Open3D MKL::MKL OpenMP::OpenMP_CXX)

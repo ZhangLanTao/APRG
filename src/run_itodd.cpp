@@ -16,7 +16,7 @@ using std::vector;
 
 
 int main() {
-    string data_path = "/home/zlt/CLionProjects/HirachicalPlaneSegmentation/data/itodd/itodd_test_bop19/test/000001";
+    string data_path = "/home/zlt/CLionProjects/HierarchicalPlaneSegmentation/data/itodd/itodd_test_bop19/test/000001";
     // 读取json
     FILE *fp = fopen((data_path + "/scene_camera.json").c_str(), "r"); // 非 Windows 平台使用 "r"
     char readBuffer[65536];
