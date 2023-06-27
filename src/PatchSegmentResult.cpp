@@ -81,7 +81,7 @@ int PatchSegmentResult::GetPatchLabel(vector<int> ind) {
     return m_data_patch_label[offset];
 }
 
-bool PatchSegmentResult::IsLabled(vector<int> ind) {
+bool PatchSegmentResult::IsLabeled(vector<int> ind) {
     int offset = GetOffsetOfHIndex(ind);
     return m_data_patch_label[offset] != 0;
 }
@@ -108,10 +108,10 @@ vector<int> PatchSegmentResult::GetRemainingLargestPatchIndex() const {
         }
     }
     if (largest_patch_offset == -1) return {};
-    else return GetHierachicalIndexFromOffsetAndLevel(largest_patch_offset, largest_patch_level);
+    else return GetHierarchicalIndexFromOffsetAndLevel(largest_patch_offset, largest_patch_level);
 }
 
-vector<int> PatchSegmentResult::GetHierachicalIndexFromOffsetAndLevel(int offset, unsigned short level) const {
+vector<int> PatchSegmentResult::GetHierarchicalIndexFromOffsetAndLevel(int offset, unsigned short level) const {
     vector<int> ind(level);
     for (int i = 0; i < level; i++) {
         ind[i] = offset / m_offsets_each_level[i];

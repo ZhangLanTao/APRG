@@ -16,7 +16,7 @@ private:
     PlaneParams *m_data_plane_params;
     bool *m_data_patch_visited;
 
-    vector<int> GetHierachicalIndexFromOffsetAndLevel(int offset, unsigned short level) const;
+    vector<int> GetHierarchicalIndexFromOffsetAndLevel(int offset, unsigned short level) const;
 
 public:
     PatchSegmentResult();
@@ -33,7 +33,7 @@ public:
 
     int GetPatchLabel(vector<int> ind);
 
-    bool IsLabled(vector<int> ind);
+    bool IsLabeled(vector<int> ind);
 
     unsigned short GetPatchSegmentLevel(vector<int> ind) const;
 

@@ -1,7 +1,5 @@
 #include "HPS.h"
 #include "utils.h"
-#include "PointsSumPyramid.h"
-#include "PatchSegmentResult.h"
 #include "PlaneSeg.h"
 #include <iostream>
 
@@ -198,7 +196,6 @@ void HPS::PatchwiseRegionGrowing() {
 
         // 还有seed可选，则认新增一个新的连通区域
         ++cnt;
-        m_patch_segment_result.ResetVisited();
 #ifdef DEBUG
         color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
         DrawPatchByHierarchicalIndex(seed_index, m_gray_img, color, -1);
@@ -210,8 +207,9 @@ void HPS::PatchwiseRegionGrowing() {
 }
 
 void HPS::RecursiveRegionGrowing(const vector<int>& seed_index, unsigned short label) {
-    m_patch_segment_result.SetPatchLabel(seed_index, label);
+    m_patch_segment_result.ResetVisited();
     m_patch_segment_result.SetPatchVisited(seed_index);
+    m_patch_segment_result.SetPatchLabel(seed_index, label);
     vector<vector<int>> neighbor_indexs = GetAllPossibleSmallerNeighborPatchIndexes(seed_index);
 
     for (auto neighbor_index : neighbor_indexs) {
@@ -219,7 +217,7 @@ void HPS::RecursiveRegionGrowing(const vector<int>& seed_index, unsigned short l
         vector<int> most_similar_patch_index = m_patch_segment_result.GetMostSimilarPatchIndex(neighbor_index);
         if (most_similar_patch_index.empty()) continue;
         if (m_patch_segment_result.IsVisited(most_similar_patch_index)) continue;
-        if (m_patch_segment_result.IsLabled(most_similar_patch_index)) continue;
+        if (m_patch_segment_result.IsLabeled(most_similar_patch_index)) continue;
 
         m_patch_segment_result.SetPatchVisited(most_similar_patch_index);
 
