@@ -1,4 +1,5 @@
 #include <opencv2/opencv.hpp>
+//#define EIGEN_USE_MKL_ALL
 #include <Eigen/Dense>
 #include "open3d/Open3D.h"
 #include "utils.h"
@@ -9,8 +10,10 @@ void DepthToPointCloud(cv::Mat & d_img, float fx, float fy, float cx, float cy, 
     int height = d_img.rows;
     int width = d_img.cols;
     cloud_array.setZero(height*width,3);
-
+#ifdef ENABLE_OMP
+omp_set_num_threads(8);
 #pragma omp parallel for default(none) shared(d_img, height, width, fx, fy, cx, cy, z_min, cloud_array)
+#endif
     for(int r=0; r< height; r++){
         for(auto c=0; c< width; c++){
             float z = d_img.at<float>(r, c);
@@ -124,4 +127,10 @@ PlaneParams PointsSum::FitPlane() const{
     MSE = min_ev / num_points;
     score = es.eigenvalues()[1] / min_ev;
     return PlaneParams{normal[0], normal[1], normal[2], d, mean[0], mean[1], mean[2], MSE, score};
+}
+
+void Waste100us(){
+//    sleep 10ms
+    clock_t start_time = clock();
+    while (clock() - start_time < 100);
 }

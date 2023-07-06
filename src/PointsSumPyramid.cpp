@@ -1,6 +1,5 @@
 #include <iostream>
 #include "PointsSumPyramid.h"
-#include "utils.h"
 
 using std::vector, std::max;
 
@@ -53,8 +52,9 @@ void PointsSumPyramid::PreComputeSum(const Eigen::MatrixXf &cloud_array) {
 
     //    计算最小块的和，后续计算PointsSum结构体的和，不用重复计算了
     offset_this_layer = GetOffsetOfLayerN(m_num_layers - 1);
-
+#ifdef ENABLE_OMP
 #pragma omp parallel for shared(cloud_array, offset_this_layer, num_minimum_patches, num_patch_points) default(none)
+#endif
     for (int i = 0; i < num_minimum_patches; i++) {
         PreComputeSumOfArray(cloud_array.block(i * num_patch_points, 0, num_patch_points, 3),
                              m_data[offset_this_layer + i]);

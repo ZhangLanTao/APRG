@@ -95,18 +95,37 @@ PlaneParams PatchSegmentResult::GetPatchPlaneParameter(vector<int> ind) const {
     int offset = GetOffsetOfHIndex(ind);
     return m_data_plane_params[offset];
 }
+// 真实的寻找最大块函数，效率不高，意义不大，暂时不用
+//vector<int> PatchSegmentResult::GetRemainingLargestPatchIndex() const {
+//    int largest_patch_level = 999;
+//    int largest_patch_offset = -1;
+//    for (int i = 0; i < m_num_smallest_patches; i++) {
+//        if (m_data_patch_level[i] == 0) continue;
+//        if (m_data_patch_label[i]) continue;
+//        if (m_data_patch_level[i] < largest_patch_level) {
+//            largest_patch_level = m_data_patch_level[i];
+//            largest_patch_offset = i;
+//        }
+//    }
+//    if (largest_patch_offset == -1) return {};
+//    else return GetHierarchicalIndexFromOffsetAndLevel(largest_patch_offset, largest_patch_level);
+//}
 
-vector<int> PatchSegmentResult::GetRemainingLargestPatchIndex() const {
-    int largest_patch_level = 999;
+
+// 由于找最大块作为种子点的作用不大，所以暂时随便找一个未分类的块就作为种子点，待继续优化
+vector<int> PatchSegmentResult::GetRemainingLargestPatchIndex(int& start_from_i) const {
     int largest_patch_offset = -1;
-    for (int i = 0; i < m_num_smallest_patches; i++) {
+    int largest_patch_level = 0;
+    for (int i = start_from_i; i < m_num_smallest_patches; i++) {
         if (m_data_patch_level[i] == 0) continue;
         if (m_data_patch_label[i]) continue;
-        if (m_data_patch_level[i] < largest_patch_level) {
-            largest_patch_level = m_data_patch_level[i];
-            largest_patch_offset = i;
-        }
+
+        largest_patch_level = m_data_patch_level[i];
+        largest_patch_offset = i;
+        start_from_i = i+1;
+        break;
     }
+
     if (largest_patch_offset == -1) return {};
     else return GetHierarchicalIndexFromOffsetAndLevel(largest_patch_offset, largest_patch_level);
 }

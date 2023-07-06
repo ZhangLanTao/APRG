@@ -1,6 +1,7 @@
 #ifndef HIRACHICALPLANESEGMENTATION_POINTSSUMPYRAMID_H
 #define HIRACHICALPLANESEGMENTATION_POINTSSUMPYRAMID_H
 
+//#define EIGEN_USE_MKL_ALL
 #include<Eigen/Dense>
 #include<vector>
 #include "utils.h"

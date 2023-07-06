@@ -39,7 +39,7 @@ public:
 
     PlaneParams GetPatchPlaneParameter(vector<int> ind) const;
 
-    vector<int> GetRemainingLargestPatchIndex() const;
+    vector<int> GetRemainingLargestPatchIndex(int& start_from_i) const;
 
     void SetPatchVisited(vector<int> ind);
 

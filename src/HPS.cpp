@@ -1,5 +1,4 @@
 #include "HPS.h"
-#include "utils.h"
 #include "PlaneSeg.h"
 #include <iostream>
 
@@ -26,16 +25,26 @@ HPS::HPS(int img_height, int img_width, int block_num_x, int block_num_y, int tr
 
 
 void HPS::Process() {
+//    auto t0 = std::chrono::high_resolution_clock::now();
     OrganizePointCloud();
-    auto t1 = cv::getTickCount();
+//    auto t1 = std::chrono::high_resolution_clock::now();
     m_points_sum_pyramid.PreComputeSum(m_organized_pointcloud);
+//    auto t2 = std::chrono::high_resolution_clock::now();
     RecursivePlaneSegment();
+//    auto t3 = std::chrono::high_resolution_clock::now();
     PatchwiseRegionGrowing();
-    auto t2 = cv::getTickCount();
+//    auto t4 = std::chrono::high_resolution_clock::now();
+    Waste100us();
+//    auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+//    std::cout<<"OrganizePointCloud time: "<<time_elapsed<<endl;
+//    time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count();
+//    std::cout<<"PreComputeSum time: "<<time_elapsed<<endl;
+//    time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+//    std::cout<<"RecursivePlaneSegment time: "<<time_elapsed<<endl;
+//    time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
+//    std::cout<<"PatchwiseRegionGrowing time: "<<time_elapsed<<endl<<endl;
 
 
-    auto fps = cv::getTickFrequency() / (t2 - t1);
-    std::cout << "FPS: " << fps << endl;
 }
 
 void HPS::GetHierarchicalIndexFromRowCol(int row, int col, int *hierarchical_index) {
@@ -99,7 +108,9 @@ void HPS::OrganizePointCloud() {
     m_organized_pointcloud.setZero(m_img_height * m_img_width, 3);
     // 遍历所有最小块的格点
     int min_block_size = m_patch_sizes[m_num_tree_layers - 1];
-#pragma omp parallel for shared(min_block_size) default(none)
+#ifdef ENABLE_OMP
+#pragma omp parallel for shared(min_block_size) default(none) num_threads(1)
+#endif
     for (int r = 0; r < m_img_height; r += min_block_size) {
         for (int c = 0; c < m_img_width; c += min_block_size) {
 //            vector<int> hirachical_index(m_num_tree_layers);
@@ -118,7 +129,7 @@ void HPS::OrganizePointCloud() {
 
 void HPS::RecursivePlaneSegment() {
 // 读取计算points_sum_pyramid的数据，判断，把结果写到patch_segment_result里
-#ifdef RELEASE
+#ifdef ENABLE_OMP
 omp_set_num_threads(8);
 #pragma omp parallel for default(none)
 #endif
@@ -190,8 +201,9 @@ cv::Scalar color;
 #endif
 void HPS::PatchwiseRegionGrowing() {
     unsigned short cnt = 0;
+    int remaining_patch_index_from_i = 0;
     while (1) {
-        vector<int> seed_index = m_patch_segment_result.GetRemainingLargestPatchIndex();
+        vector<int> seed_index = m_patch_segment_result.GetRemainingLargestPatchIndex(remaining_patch_index_from_i);
         if (seed_index.empty()) break;
 
         // 还有seed可选，则认新增一个新的连通区域

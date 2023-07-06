@@ -2,6 +2,7 @@
 #define HIRACHICALPLANESEGMENTATION_UTILS_H
 
 #include <opencv2/opencv.hpp>
+//#define EIGEN_USE_MKL_ALL
 #include <Eigen/Dense>
 
 using namespace std;
@@ -57,5 +58,6 @@ void DrawPc(Eigen::MatrixXf cloud_array);
 
 void SavePc(Eigen::MatrixXf cloud_array);
 
+void Waste100us();
 
 #endif //HIRACHICALPLANESEGMENTATION_UTILS_H
