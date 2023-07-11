@@ -6,6 +6,8 @@
 
 using std::vector, std::cout, std::endl;
 
+long g_program_counter;
+
 void DepthToPointCloud(cv::Mat & d_img, float fx, float fy, float cx, float cy, double z_min, Eigen::MatrixXf & cloud_array){
     int height = d_img.rows;
     int width = d_img.cols;
@@ -86,7 +88,7 @@ PointsSum PointsSum::Add(const PointsSum &a, const PointsSum &b, const PointsSum
 PlaneParams PointsSum::FitPlane() const{
 //    if (this->jump_cnt > 2) return{};
 //    if (this->num_points < 50) return{};
-
+    g_program_counter++;
     double mean[3];
     mean[0] = sum_x / num_points;
     mean[1] = sum_y / num_points;

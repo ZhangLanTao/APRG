@@ -5,6 +5,8 @@
 //#define EIGEN_USE_MKL_ALL
 #include <Eigen/Dense>
 
+extern long g_program_counter;
+
 using namespace std;
 
 class PlaneParams {

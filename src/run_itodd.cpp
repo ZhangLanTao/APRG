@@ -33,6 +33,10 @@ int main() {
     std::ofstream log_time;
     fn_out = "HPS_time.txt";
     log_time.open(fn_out.c_str(), std::ios::out);
+//    std::string fn_out;
+//    std::ofstream log_fitplane_count;
+//    fn_out = "FitPlaneCount.txt";
+//    log_fitplane_count.open(fn_out.c_str(), std::ios::out);
     for (int repeat = 0; repeat < 1; ++repeat) {
         for (auto item: scene_infos) {
             int i = item.number;
@@ -56,11 +60,11 @@ int main() {
 
 
             Eigen::MatrixXf cloud_array;
-            auto t0 = std::chrono::high_resolution_clock::now();
+//            auto t0 = std::chrono::high_resolution_clock::now();
             DepthToPointCloud(d_img, fx, fy, cx, cy, 10, cloud_array);
-            auto t1 = std::chrono::high_resolution_clock::now();
-            auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count();
-            cout << "DepthToPointCloud: " << time_elapsed << "us" << endl;
+//            auto t1 = std::chrono::high_resolution_clock::now();
+//            auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count();
+//            cout << "DepthToPointCloud: " << time_elapsed << "us" << endl;
 
             //        SavePc(cloud_array);
 
@@ -70,15 +74,18 @@ int main() {
 
 
             // 分割平面
-            t0 = std::chrono::high_resolution_clock::now();
+            auto t0 = std::chrono::high_resolution_clock::now();
             hps.Process();
-            t1 = std::chrono::high_resolution_clock::now();
-            time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count();
+            auto t1 = std::chrono::high_resolution_clock::now();
+            auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count();
             cout << "Process: " << time_elapsed << "us" << endl;
             log_time << time_elapsed << '\n';
+//            log_fitplane_count<<g_program_counter<<'\n';
+
 
         }
     }
     log_time.close();
+//    log_fitplane_count.close();
     return 0;
 }
