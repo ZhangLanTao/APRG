@@ -8,51 +8,49 @@ using std::vector;
 
 class PatchSegmentResult {
 private:
-    int m_index_layers;
-    int m_num_smallest_patches;
-    int *m_offsets_each_level;
-    unsigned short *m_data_patch_level;
-    unsigned short *m_data_patch_label;
+    uint8_t m_index_layers;
+    uint16_t m_num_smallest_patches;
+    uint16_t *m_offsets_each_level;
+    uint8_t *m_data_patch_level;
+    uint16_t *m_data_patch_label;
     PlaneParams *m_data_plane_params;
     bool *m_data_patch_visited;
 
-    vector<int> GetHierarchicalIndexFromOffsetAndLevel(int offset, unsigned short level) const;
+    vector<uint8_t> GetHierarchicalIndexFromOffsetAndLevel(uint16_t offset, unsigned short level) const;
 
 public:
     PatchSegmentResult();
 
-    PatchSegmentResult(PatchSegmentResult &patch_segment_result);
+    void Initialize(const uint8_t *num_childs_each_level, uint8_t max_index_layers);
 
-    void Initialize(const int *num_childs_each_level, int max_index_layers);
+    int GetOffsetOfHIndex(const vector<uint8_t> &ind) const;
 
-    int GetOffsetOfHIndex(const vector<int> &ind) const;
+    void SetPatchSegmentResult(const vector<uint8_t>& ind, uint8_t value, PlaneParams plane_params);
 
-    void SetPatchSegmentResult(vector<int> ind, int value, PlaneParams plane_params);
+    void SetPatchLabel(const vector<uint8_t>& ind, uint16_t label);
 
-    void SetPatchLabel(vector<int> ind, int label);
+    int GetPatchLabel(const vector<uint8_t>& ind);
 
-    int GetPatchLabel(vector<int> ind);
+    bool IsLabeled(const vector<uint8_t>& ind);
 
-    bool IsLabeled(vector<int> ind);
+    uint8_t GetPatchSegmentLevel(const vector<uint8_t>& ind) const;
 
-    unsigned short GetPatchSegmentLevel(vector<int> ind) const;
+    PlaneParams GetPatchPlaneParameter(const vector<uint8_t>& ind) const;
 
-    PlaneParams GetPatchPlaneParameter(vector<int> ind) const;
+    vector<uint8_t> GetRemainingLargestPatchIndex(int& start_from_i) const;
 
-    vector<int> GetRemainingLargestPatchIndex(int& start_from_i) const;
+    void SetPatchVisited(vector<uint8_t> ind);
 
-    void SetPatchVisited(vector<int> ind);
-
-    bool IsVisited(vector<int> ind) const;
+    bool IsVisited(const vector<uint8_t>& ind) const;
 
     void ResetVisited();
 
-    inline bool Has(const vector<int>& ind) const{
-        unsigned short level = GetPatchSegmentLevel(ind);
+    inline bool Has(const vector<uint8_t> &ind) const{
+        uint8_t level = GetPatchSegmentLevel(ind);
         return level == ind.size();
     };
 
-    vector<int> GetMostSimilarPatchIndex(vector<int> ind) const;
+    vector<uint8_t> GetMostSimilarPatchIndex(vector<uint8_t> ind) const;
 
     ~PatchSegmentResult();
 };

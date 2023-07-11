@@ -12,7 +12,7 @@ using std::vector;
 
 class PointsSumPyramid {
 private:
-    int m_num_layers;
+    uint8_t m_num_layers;
     int *m_num_elements_each_layer;
     int m_smallest_patch_width;
     PointsSum *m_data;
@@ -22,12 +22,12 @@ private:
 public:
     PointsSumPyramid();
     ~PointsSumPyramid();
-    void Initialize(const int *num_childs_each_level, int max_index_layers, int smallest_patch_width);
+    void Initialize(const uint8_t *num_childs_each_level, uint8_t max_index_layers, uint8_t smallest_patch_width);
     void PreComputeSum(const Eigen::MatrixXf &cloud_array);
     int GetOffsetOfLayerN(int n);
 
-    PointsSum &Index(const int ind[], int n);
-    PointsSum &Index(vector<int> ind);
+    PointsSum &Index(const uint8_t ind[], uint8_t n);
+    PointsSum &Index(vector<uint8_t> ind);
 };
 
 

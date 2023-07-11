@@ -11,7 +11,7 @@ PointsSumPyramid::PointsSumPyramid() {
     this->m_data = nullptr;
 }
 
-void PointsSumPyramid::Initialize(const int *num_childs_each_level, const int max_index_layers, const int smallest_patch_width) {
+void PointsSumPyramid::Initialize(const uint8_t *num_childs_each_level, const uint8_t max_index_layers, const uint8_t smallest_patch_width) {
     this->m_num_layers = max_index_layers;
     this->m_num_elements_each_layer = new int[max_index_layers];
     this->m_smallest_patch_width = smallest_patch_width;
@@ -26,11 +26,11 @@ void PointsSumPyramid::Initialize(const int *num_childs_each_level, const int ma
     m_data = new PointsSum[total_size];
 }
 
-PointsSum &PointsSumPyramid::Index(vector<int> ind){
+PointsSum &PointsSumPyramid::Index(vector<uint8_t> ind){
     return Index(ind.data(), ind.size());
 }
 
-PointsSum &PointsSumPyramid::Index(const int *ind, int n){
+PointsSum &PointsSumPyramid::Index(const uint8_t *ind, uint8_t n){
     int offset = GetOffsetOfLayerN(n-1);
     for (int i = 0; i < n; i++) {
         offset += ind[i] * pow(4, n-i-1);
