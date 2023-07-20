@@ -23,6 +23,11 @@ void PatchSegmentResult::Initialize(const int *num_childs_each_level, const int 
     this->m_data_plane_params = new PlaneParams[m_num_smallest_patches];
     this->m_data_patch_visited = new bool[m_num_smallest_patches]{};
 
+    this->m_unlabeled_patch_index_grouped_by_level_smallest_first.resize(index_layers);
+    for (int i = 0; i < index_layers; i++) {
+        this->m_unlabeled_patch_index_grouped_by_level_smallest_first[i].reserve(m_num_smallest_patches);
+    }
+
     this->m_offsets_each_level = new int[index_layers];
     for (int i = 0; i < index_layers; i++) {
         this->m_offsets_each_level[i] = 1<<(2*(index_layers-i-1));   // 4^(index_layers-i-1)
@@ -47,10 +52,11 @@ int PatchSegmentResult::GetOffsetOfHIndex(const vector<int> &ind) const {
     return offset;
 }
 
-void PatchSegmentResult::SetPatchSegmentResult(const vector<int>& ind, int value, PlaneParams plane_params) {
+void PatchSegmentResult::SetPatchSegmentResult(const vector<int>& ind, int level, PlaneParams plane_params) {
     int offset = GetOffsetOfHIndex(ind);
-    m_data_patch_level[offset] = value;
+    m_data_patch_level[offset] = level;
     m_data_plane_params[offset] = plane_params;
+    m_unlabeled_patch_index_grouped_by_level_smallest_first[6 - level].push_back(ind);
 }
 
 void PatchSegmentResult::SetPatchLabel(const vector<int>& ind, int label) {
@@ -93,23 +99,34 @@ PlaneParams PatchSegmentResult::GetPatchPlaneParameter(const vector<int>& ind) c
 //    else return GetHierarchicalIndexFromOffsetAndLevel(largest_patch_offset, largest_patch_level);
 //}
 
-
 // 由于找最大块作为种子点的作用不大，所以暂时随便找一个未分类的块就作为种子点，待继续优化
-vector<int> PatchSegmentResult::GetRemainingLargestPatchIndex(int& start_from_i) const {
-    int largest_patch_offset = -1;
-    int largest_patch_level = 0;
-    for (int i = start_from_i; i < m_num_smallest_patches; i++) {
-        if (m_data_patch_level[i] == 0) continue;
-        if (m_data_patch_label[i]) continue;
+//vector<int> PatchSegmentResult::GetRemainingLargestPatchIndex(int& start_from_i) const {
+//    int largest_patch_offset = -1;
+//    int largest_patch_level = 0;
+//    for (int i = start_from_i; i < m_num_smallest_patches; i++) {
+//        if (m_data_patch_level[i] == 0) continue;
+//        if (m_data_patch_label[i]) continue;
+//
+//        largest_patch_level = m_data_patch_level[i];
+//        largest_patch_offset = i;
+//        start_from_i = i+1;
+//        break;
+//    }
+//
+//    if (largest_patch_offset == -1) return {};
+//    else return GetHierarchicalIndexFromOffsetAndLevel(largest_patch_offset, largest_patch_level);
+//}
 
-        largest_patch_level = m_data_patch_level[i];
-        largest_patch_offset = i;
-        start_from_i = i+1;
-        break;
+// 所有块已经排序之后,依次挑选剩余的最大的块作为种子点
+vector<int> PatchSegmentResult::GetRemainingLargestPatchIndex() {
+    while(true){
+        if(m_unlabeled_patch_index_sorted_by_level_smallest_first.empty()) return {};
+        auto ind = m_unlabeled_patch_index_sorted_by_level_smallest_first.back();
+        m_unlabeled_patch_index_sorted_by_level_smallest_first.pop_back();
+        if(IsVisited(ind)) continue;
+        if(IsLabeled(ind)) continue;
+        return ind;
     }
-
-    if (largest_patch_offset == -1) return {};
-    else return GetHierarchicalIndexFromOffsetAndLevel(largest_patch_offset, largest_patch_level);
 }
 
 vector<int> PatchSegmentResult::GetHierarchicalIndexFromOffsetAndLevel(int offset, unsigned short level) const {
@@ -141,5 +158,12 @@ vector<int> PatchSegmentResult::GetMostSimilarPatchIndex(vector<int> ind) const{
             return {ind.begin(), ind.begin()+i+1};
     }
     return {};
+}
+
+void PatchSegmentResult::SortUnlabeledPatchIndex_SmallestFirst() {
+    for(auto indexes : m_unlabeled_patch_index_grouped_by_level_smallest_first){
+        m_unlabeled_patch_index_sorted_by_level_smallest_first.insert(
+        m_unlabeled_patch_index_sorted_by_level_smallest_first.end(), indexes.begin(), indexes.end());
+    }
 }
 

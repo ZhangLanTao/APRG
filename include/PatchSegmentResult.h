@@ -16,6 +16,9 @@ private:
     PlaneParams *m_data_plane_params;
     bool *m_data_patch_visited;
 
+    vector<vector<vector<int>>> m_unlabeled_patch_index_grouped_by_level_smallest_first;
+    vector<vector<int>> m_unlabeled_patch_index_sorted_by_level_smallest_first;
+
     vector<int> GetHierarchicalIndexFromOffsetAndLevel(int offset, unsigned short level) const;
 
 public:
@@ -25,7 +28,7 @@ public:
 
     int GetOffsetOfHIndex(const vector<int> &ind) const;
 
-    void SetPatchSegmentResult(const vector<int>& ind, int value, PlaneParams plane_params);
+    void SetPatchSegmentResult(const vector<int>& ind, int level, PlaneParams plane_params);
 
     void SetPatchLabel(const vector<int>& ind, int label);
 
@@ -37,7 +40,9 @@ public:
 
     PlaneParams GetPatchPlaneParameter(const vector<int>& ind) const;
 
-    vector<int> GetRemainingLargestPatchIndex(int& start_from_i) const;
+    void SortUnlabeledPatchIndex_SmallestFirst();
+
+    vector<int> GetRemainingLargestPatchIndex();
 
     void SetPatchVisited(vector<int> ind);
 

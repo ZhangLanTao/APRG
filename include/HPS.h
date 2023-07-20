@@ -37,7 +37,6 @@ private:
 // 递归分割中间变量和结果
     PointsSumPyramid m_points_sum_pyramid;
     PatchSegmentResult m_patch_segment_result;
-//    vector<vector<vector<short>>> m_sorted_patch_indexes; // 每个patch的索引，按照patch的大小排序，同等大小的patch之间无序
 
 // 最终得到的平面参数，索引为分割的label
     PlaneParams *m_plane_params;

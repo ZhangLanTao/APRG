@@ -36,7 +36,7 @@ void HPS::Process() {
 //    auto t3 = std::chrono::high_resolution_clock::now();
     PatchwiseRegionGrowing();
 //    auto t4 = std::chrono::high_resolution_clock::now();
-//    Waste100us();
+    Waste100us();
 //    auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 //    std::cout<<"OrganizePointCloud time: "<<time_elapsed<<endl;
 //    time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count();
@@ -197,6 +197,7 @@ omp_set_num_threads(8);
     cv::imshow("img_copy", m_gray_img);
     cv::waitKey();
 #endif
+    m_patch_segment_result.SortUnlabeledPatchIndex_SmallestFirst();
 }
 
 #ifdef DEBUG
@@ -204,9 +205,8 @@ cv::Scalar color;
 #endif
 void HPS::PatchwiseRegionGrowing() {
     int cnt = 0;
-    int remaining_patch_index_from_i = 0;
     while (1) {
-        vector<int> seed_index = m_patch_segment_result.GetRemainingLargestPatchIndex(remaining_patch_index_from_i);
+        vector<int> seed_index = m_patch_segment_result.GetRemainingLargestPatchIndex();
         if (seed_index.empty()) break;
 
         // 还有seed可选，则认新增一个新的连通区域
