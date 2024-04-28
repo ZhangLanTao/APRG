@@ -262,7 +262,7 @@ struct UTF8 {
     \tparam CharType Type for storing 16-bit UTF-16 m_data. Default is wchar_t. C++11 may use char16_t instead.
     \note implements Encoding concept
 
-    \note For in-memory access, no need to concern endianness. The code units and code points are represented by CPU's endianness.
+    \note For in-memory access, no need to concern endianness. The code units and code num_points are represented by CPU's endianness.
     For streaming, use UTF16LE and UTF16BE, which handle endianness.
 */
 template<typename CharType = wchar_t>
@@ -411,7 +411,7 @@ struct UTF16BE : UTF16<CharType> {
     \tparam CharType Type for storing 32-bit UTF-32 m_data. Default is unsigned. C++11 may use char32_t instead.
     \note implements Encoding concept
 
-    \note For in-memory access, no need to concern endianness. The code units and code points are represented by CPU's endianness.
+    \note For in-memory access, no need to concern endianness. The code units and code num_points are represented by CPU's endianness.
     For streaming, use UTF32LE and UTF32BE, which handle endianness.
 */
 template<typename CharType = unsigned>

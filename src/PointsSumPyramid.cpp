@@ -45,7 +45,7 @@ int PointsSumPyramid::GetOffsetOfLayerN(int n) {
     return offset;
 }
 
-void PointsSumPyramid::PreComputeSum(const Eigen::MatrixXf &cloud_array) {
+void PointsSumPyramid::PreComputeSum(const Eigen::MatrixXd &cloud_array) {
     int offset_this_layer;
     int num_minimum_patches = m_num_elements_each_layer[m_num_layers - 1];
     int num_patch_points = cloud_array.rows() / num_minimum_patches;
@@ -65,16 +65,16 @@ void PointsSumPyramid::PreComputeSum(const Eigen::MatrixXf &cloud_array) {
         offset_this_layer = GetOffsetOfLayerN(layer);
         int offset_next_layer = GetOffsetOfLayerN(layer + 1);
         for (int i = 0; i < num_patches; i++) {
-            m_data[offset_this_layer + i] = PointsSum::Add(m_data[offset_next_layer + 4 * i],
-                                                           m_data[offset_next_layer + 4 * i + 1],
-                                                           m_data[offset_next_layer + 4 * i + 2],
-                                                           m_data[offset_next_layer + 4 * i + 3]);
+            m_data[offset_this_layer + i] = PointsSum::AddFour(m_data[offset_next_layer + 4 * i],
+                                                               m_data[offset_next_layer + 4 * i + 1],
+                                                               m_data[offset_next_layer + 4 * i + 2],
+                                                               m_data[offset_next_layer + 4 * i + 3]);
         }
     }
 }
 
-void PointsSumPyramid::PreComputeSumOfArray(const Eigen::MatrixXf &cloud_array, PointsSum &points_sum_result) {
-    Eigen::MatrixXf X_matrix, Y_matrix, Z_matrix;
+void PointsSumPyramid::PreComputeSumOfArray(const Eigen::MatrixXd &cloud_array, PointsSum &points_sum_result) {
+    Eigen::MatrixXd X_matrix, Y_matrix, Z_matrix;
     X_matrix = cloud_array.col(0);
     Y_matrix = cloud_array.col(1);
     Z_matrix = cloud_array.col(2);
@@ -94,7 +94,7 @@ void PointsSumPyramid::PreComputeSumOfArray(const Eigen::MatrixXf &cloud_array, 
 }
 
 
-int PointsSumPyramid::CountJumps(const Eigen::MatrixXf &Z_matrix, float max_diff) const {
+int PointsSumPyramid::CountJumps(const Eigen::MatrixXd &Z_matrix, float max_diff) const {
     // Check for discontinuities using cross search
     int jumps_count = 0;
     int num_pts_per_cell = Z_matrix.rows();

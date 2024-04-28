@@ -5,9 +5,10 @@ find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Open3D REQUIRED)
 find_package(MKL REQUIRED)
-#find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED)
 
-if(OPENMP_FOUND)
+#if(OPENMP_FOUND)
+if(False)
     message("-- OpenMP found")
     ADD_DEFINITIONS(-DENABLE_OMP)
     set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS})
@@ -40,7 +41,15 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 
 file(GLOB_RECURSE srcs src/*.cpp)
+file(GLOB_RECURSE REMOVE_SOURCES "src/run_*.cpp")
+message("REMOVE_SOURCES：" ${REMOVE_SOURCES})
+list(REMOVE_ITEM srcs ${REMOVE_SOURCES})
 
-add_executable(HierarchicalPlaneSegmentation ${srcs})
+add_executable(Run_ITODD ${srcs} src/run_itodd.cpp)
+add_executable(Run_EVOPS_Syn ${srcs} src/run_EVOPS_Syn.cpp)
+add_executable(Run_EVOPS_Real ${srcs} src/run_EVOPS_Real.cpp)
 
-target_link_libraries(HierarchicalPlaneSegmentation ${OpenCV_LIBS} Eigen3::Eigen Open3D::Open3D MKL::MKL)
+
+target_link_libraries(Run_ITODD ${OpenCV_LIBS} Eigen3::Eigen Open3D::Open3D MKL::MKL)
+target_link_libraries(Run_EVOPS_Syn ${OpenCV_LIBS} Eigen3::Eigen Open3D::Open3D MKL::MKL)
+target_link_libraries(Run_EVOPS_Real ${OpenCV_LIBS} Eigen3::Eigen Open3D::Open3D MKL::MKL)
