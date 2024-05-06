@@ -75,17 +75,17 @@ public:
 };
 
 void DepthToPointCloud(cv::Mat &d_img, float fx, float fy, float cx, float cy, double scale, double z_min,
-                       Eigen::MatrixXd &cloud_array);
-void ColorImgToArray(cv::Mat &color_img, Eigen::MatrixXd &color_array);
+                       Eigen::MatrixXf &cloud_array);
+void ColorImgToArray(cv::Mat &color_img, Eigen::MatrixXf &color_array);
 
 void PrintVector(std::vector<int>& v);
 
-void DrawPc(Eigen::MatrixXd original_cloud_array, cv::Mat color_img);
+void DrawPc(Eigen::MatrixXf original_cloud_array, cv::Mat color_img);
 
 void DrawPc_o3d(cv::Mat &color_img, cv::Mat &d_img, double fx, double fy, double cx, double cy,
                 double scale, double z_min);
 
-void SavePc(const std::string filename, Eigen::MatrixXd cloud_array);
+void SavePc(const std::string filename, Eigen::MatrixXf cloud_array);
 
 void Waste100us();
 

@@ -24,6 +24,9 @@ HPS::HPS(int img_height, int img_width, int block_num_x, int block_num_y, int tr
         _patch_sizes[i] = temp;
     }
 
+    _organize_data_cell_map = new int[img_height * img_width];
+    InitOrganizeDataCellMap();
+
     _points_sum_pyramid.Initialize(_num_patches_each_level, _num_tree_layers, _patch_sizes[_num_tree_layers - 1]);
     _patch_segment_status.Initialize(_num_patches_each_level, _num_tree_layers);
     _region_count = 0;
@@ -81,10 +84,10 @@ void HPS::Process() {
 
 void HPS::GetHierarchicalIndexFromRowCol(int row, int col, int *hierarchical_index) {
 //     判断row col 能否被block_size整除
-    if (row % _patch_sizes[_num_tree_layers - 1] != 0 || col % _patch_sizes[_num_tree_layers - 1] != 0) {
-        std::cout << "row or col can not be divided by block_size" << endl;
-        return;
-    }
+//    if (row % _patch_sizes[_num_tree_layers - 1] != 0 || col % _patch_sizes[_num_tree_layers - 1] != 0) {
+//        std::cout << "row or col can not be divided by block_size" << endl;
+//        return;
+//    }
     hierarchical_index[0] = row / _patch_sizes[0] * 4 + col / _patch_sizes[0];
     row = row % _patch_sizes[0];
     col = col % _patch_sizes[0];
@@ -136,30 +139,70 @@ vector<int> HPS::GetRowColLevelFromHierarchicalIndex(vector<int> hierarchical_in
     return {row, col, level};
 }
 
-
-void HPS::OrganizePointCloud() {
-
+void HPS::InitOrganizeDataCellMap() {
     // 遍历所有最小块的格点
     int min_block_size = _patch_sizes[_num_tree_layers - 1];
-#ifdef ENABLE_OMP
-#pragma omp parallel for shared(min_block_size) default(none) num_threads(8)
-#endif
+
     for (int r = 0; r < _img_height; r += min_block_size) {
         for (int c = 0; c < _img_width; c += min_block_size) {
-//            vector<int> hirachical_index(_num_tree_layers);
             int hirachical_index[_num_tree_layers];
             GetHierarchicalIndexFromRowCol(r, c, hirachical_index); // 获取当前格点的层次索引
-            auto t1 = std::chrono::high_resolution_clock::now();
             int dst_offset = GetOffsetOfHierarchicalIndex(hirachical_index);  // 层次索引对应在organized_pointcloud中的偏移量（起始位置）
-            // 拷贝一个最小块的点云到organized_pointcloud
-            for (int rr = 0; rr < min_block_size; rr++) {
-                _organized_pointcloud.block(dst_offset, 0, min_block_size, 3) =
-                        _cloud_array.block((r + rr) * _img_width + c, 0, min_block_size, 3);
-                dst_offset += min_block_size;
+            for (int rr = 0; rr < min_block_size; ++rr) {
+                for (int cc = 0; cc < min_block_size; ++cc) {
+                    _organize_data_cell_map[(r+rr) * _img_width + c + cc] = dst_offset+rr*min_block_size+cc;
+                }
             }
         }
     }
 }
+
+
+void HPS::OrganizePointCloud() {
+    // 遍历所有最小块的格点
+    int min_block_size = _patch_sizes[_num_tree_layers - 1];
+    int dst_offset = 0;
+#ifdef ENABLE_OMP
+#pragma omp parallel for firstprivate(min_block_size, dst_offset) default(none) num_threads(8)
+#endif
+    for (int r = 0; r < _img_height; r += min_block_size) {
+        for (int c = 0; c < _img_width; c += min_block_size) {
+            // 拷贝一个最小块的点云（并且是一行一行地）到organized_pointcloud
+            for (int rr = 0; rr < min_block_size; rr++) {
+                dst_offset = _organize_data_cell_map[(r+rr) * _img_width + c];
+                _organized_pointcloud.block(dst_offset, 0, min_block_size, 3) =
+                        _cloud_array.block((r + rr) * _img_width + c, 0, min_block_size, 3);
+
+            }
+        }
+    }
+}
+//void HPS::OrganizePointCloud() {
+//#ifdef ENABLE_OMP
+//#pragma omp parallel for shared(min_block_size) default(none) num_threads(8)
+//#endif
+//    for (int i = 0; i < _img_width*_img_height; ++i) {
+//        auto dst = _organize_data_cell_map[i];
+//        _organized_pointcloud.row(dst) = _cloud_array.row(i);
+//    }
+//}
+//void HPS::OrganizePointCloud() {
+//    int mxn = _img_width*_img_height;
+//    int mxn2 = 2*mxn;
+//    int id;
+//#ifdef ENABLE_OMP
+//#pragma omp parallel for firstprivate(id, mxn, mxn2) shared(cout) default(none) num_threads(8)
+//#endif
+//    for(int r=0; r< _img_height; r++){
+//        for(int c=0; c< _img_width; c++){
+//            int i = r*_img_width+c;
+//            id = _organize_data_cell_map[i];
+//            *(_organized_pointcloud.data() + id) = *(_cloud_array.data() + i);
+//            *(_organized_pointcloud.data() + mxn + id) = *(_cloud_array.data() + mxn + i);
+//            *(_organized_pointcloud.data() + mxn2 + id) = *(_cloud_array.data() + mxn2 + i);
+//        }
+//    }
+//}
 
 void HPS::RecursivePlaneSegment(bool debug=false) {
 // 读取计算points_sum_pyramid的数据，判断，把结果写到patch_segment_result里
@@ -398,7 +441,7 @@ void HPS::DrawPatchSegmentResult(cv::Mat &img_copy) {
     }
 }
 
-Eigen::MatrixXd HPS::GetPatchPoints(const vector<int> &ind) {
+Eigen::MatrixXf HPS::GetPatchPoints(const vector<int> &ind) {
     int offset = GetOffsetOfHierarchicalIndex(ind);
     int patch_size = _patch_sizes[ind.size() - 1];
     return _organized_pointcloud.block(offset, 0, patch_size * patch_size, 3);
@@ -536,7 +579,7 @@ void HPS::RefinePixelsAndMergePlane(const cv::Mat &mask_to_refine) {
             RecordMergePlane(neighbor_label);
 
             // 计算当前patch的像素点到所有邻接平面的距离
-            Eigen::MatrixXd distances_to_planes(min_patch_size*min_patch_size, neighbor_label.size());
+            Eigen::MatrixXf distances_to_planes(min_patch_size*min_patch_size, neighbor_label.size());
             for (int i = 0; i < neighbor_label.size(); ++i) {
                 PlaneParams plane_params = _region_plane_params[neighbor_label[i]];
                 auto points = GetPatchPoints(GetHierarchicalIndexFromRowColLevel(r*min_patch_size, c*min_patch_size, _num_tree_layers - 1));

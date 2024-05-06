@@ -14,14 +14,17 @@
 class HPS {
 private:
 // 点云数据
-    Eigen::MatrixXd _cloud_array;
-    Eigen::MatrixXd _organized_pointcloud;
+    Eigen::MatrixXf _cloud_array;
+    Eigen::MatrixXf _organized_pointcloud;
 
 // 图像
     cv::Mat _color_img;
     cv::Mat _d_img;
     double _fx, _fy, _cx, _cy, _depth_scale, _z_min;
     int _img_height, _img_width;
+
+// 数据排序相关，首先存好表格，实际排序时直接用索引
+    int *_organize_data_cell_map;
 
 // 图像递归分割相关
     int _block_num_x, _block_num_y;     // 首先将整个图像分成 _block_num_x * _block_num_y 个正方形块
@@ -59,6 +62,8 @@ private:
 
     cv::Mat _change_label_lut;      // 合并、修改label时的映射表
 
+    void InitOrganizeDataCellMap();
+
     void OrganizePointCloud();
 
     void RecursivePlaneSegment(bool debug);
@@ -67,7 +72,7 @@ private:
 
     void RecursiveRegionGrowing(const vector<int> &seed_index, vector<vector<int>> &region_indexes);
 
-    Eigen::MatrixXd GetPatchPoints(const vector<int> &ind);
+    Eigen::MatrixXf GetPatchPoints(const vector<int> &ind);
 
     void GetHierarchicalIndexFromRowCol(int row, int col, int *hierarchical_index);
 
@@ -123,7 +128,7 @@ public:
         _plane_merge_max_distance2_thresh = max_distance2_merge;
     };
 
-    inline void SetPointCloud(Eigen::MatrixXd array) { _cloud_array = array;} //  一定要值传递，否则性能下降，未知原因，猜测与eigen内部实现有关
+    inline void SetPointCloud(Eigen::MatrixXf array) { _cloud_array = array;} //  一定要值传递，否则性能下降，未知原因，猜测与eigen内部实现有关
 
     inline void SetImg(cv::Mat &color_img, cv::Mat &d_img, double fx, double fy, double cx, double cy, double depth_scale, double z_min= 50) {
         _color_img = color_img;
@@ -181,7 +186,6 @@ public:
     void SetPixelLabel(int label, int row, int col, bool mask[]);
 
     void ChangeLabel(int ori_label, int new_label);
-
 };
 
 

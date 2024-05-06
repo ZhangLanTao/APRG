@@ -58,7 +58,7 @@ int main() {
         if (!color_image.data || !d_img.data) break;
 
 
-        Eigen::MatrixXd cloud_array, color_array;
+        Eigen::MatrixXf cloud_array, color_array;
         DepthToPointCloud(d_img, fx, fy, cx, cy, depth_scale, 10, cloud_array);
 
 // 用来转换存储点云

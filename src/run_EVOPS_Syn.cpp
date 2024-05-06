@@ -57,7 +57,7 @@ int main() {
         if (!color_image.data || !d_img.data) break;
 
 
-        Eigen::MatrixXd cloud_array, color_array;
+        Eigen::MatrixXf cloud_array, color_array;
 //            auto t0 = std::chrono::high_resolution_clock::now();
         DepthToPointCloud(d_img, fx, fy, cx, cy, depth_scale, 10, cloud_array);
 //            auto t1 = std::chrono::high_resolution_clock::now();

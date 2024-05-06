@@ -9,7 +9,7 @@ using std::vector, std::cout, std::endl;
 long g_program_counter;
 
 void DepthToPointCloud(cv::Mat &d_img, float fx, float fy, float cx, float cy, double scale, double z_min,
-                       Eigen::MatrixXd &cloud_array) {
+                       Eigen::MatrixXf &cloud_array) {
     int height = d_img.rows;
     int width = d_img.cols;
     cloud_array.setZero(height*width,3);
@@ -30,7 +30,7 @@ omp_set_num_threads(8);
 }
 
 
-void ColorImgToArray(cv::Mat &color_img, Eigen::MatrixXd &color_array) {
+void ColorImgToArray(cv::Mat &color_img, Eigen::MatrixXf &color_array) {
     int height = color_img.rows;
     int width = color_img.cols;
     color_array.setZero(height*width,3);
@@ -63,8 +63,8 @@ void DrawPc_o3d(cv::Mat &color_img, cv::Mat &d_img, double fx, double fy, double
 
 }
 
-void DrawPc(Eigen::MatrixXd original_cloud_array, cv::Mat color_img){
-    Eigen::MatrixXd color_array;
+void DrawPc(Eigen::MatrixXf original_cloud_array, cv::Mat color_img){
+    Eigen::MatrixXf color_array;
     ColorImgToArray(color_img, color_array);
     std::vector<Eigen::Vector3d> points;
     std::vector<Eigen::Vector3d> colors;
@@ -81,7 +81,7 @@ void DrawPc(Eigen::MatrixXd original_cloud_array, cv::Mat color_img){
     open3d::visualization::DrawGeometries({cloud}, "PointCloud", 1600, 1200, 1440, 50);
 }
 
-void SavePc(const std::string filename, Eigen::MatrixXd cloud_array) {
+void SavePc(const std::string filename, Eigen::MatrixXf cloud_array) {
     std::vector<Eigen::Vector3d> points;
     for (int i = 0 ; i<cloud_array.rows(); ++i) {
         auto p = cloud_array.row(i);

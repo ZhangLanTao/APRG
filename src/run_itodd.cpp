@@ -58,7 +58,7 @@ int main() {
         if (!gray_img.data || !d_img.data) break;
 
 
-        Eigen::MatrixXd cloud_array;
+        Eigen::MatrixXf cloud_array;
 //            auto t0 = std::chrono::high_resolution_clock::now();
         DepthToPointCloud(d_img, fx, fy, cx, cy, 1, 10, cloud_array);
 //            auto t1 = std::chrono::high_resolution_clock::now();
@@ -66,12 +66,12 @@ int main() {
 //            cout << "DepthToPointCloud: " << time_elapsed << "us" << endl;
 
         //        SavePc(_cloud_array);
-        DrawPc(cloud_array);
+        DrawPc(cloud_array, gray_img);
 
         HPS hps(ITODD::IMG_HGT, ITODD::IMG_WID, 4, 3, 6);
         hps.SetPlaneThresh(0, 1);
         hps.SetPointCloud(cloud_array);
-        hps.SetImg(gray_img, <#initializer#>, 0, 0, 0, 0, 0, 50);
+        hps.SetImg(gray_img, d_img, fx, fy, cx, cy, 1, 50);
 
 
         // 分割平面

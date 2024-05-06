@@ -3,5 +3,8 @@
   <component name="Black">
     <option name="sdkName" value="Pose_estimation" />
   </component>
+  <component name="CMakePythonSetting">
+    <option name="pythonIntegrationState" value="NO" />
+  </component>
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
 </project>
