@@ -7,8 +7,9 @@
 using std::vector, std::cout, std::endl;
 
 long g_program_counter;
+long g_total_time;
 
-void DepthToPointCloud(cv::Mat &d_img, float fx, float fy, float cx, float cy, double scale, double z_min,
+void DepthToPointCloud(cv::Mat &d_img, double fx, double fy, double cx, double cy, double scale, int z_min,
                        Eigen::MatrixXf &cloud_array) {
     int height = d_img.rows;
     int width = d_img.cols;
@@ -44,6 +45,7 @@ void ColorImgToArray(cv::Mat &color_img, Eigen::MatrixXf &color_array) {
     }
 }
 
+
 void DrawPc_o3d(cv::Mat &color_img, cv::Mat &d_img, double fx, double fy, double cx, double cy,
                 double scale, double z_min) {
     auto width = d_img.cols;
@@ -63,25 +65,43 @@ void DrawPc_o3d(cv::Mat &color_img, cv::Mat &d_img, double fx, double fy, double
 
 }
 
+
 void DrawPc(Eigen::MatrixXf original_cloud_array, cv::Mat color_img){
     Eigen::MatrixXf color_array;
-    ColorImgToArray(color_img, color_array);
+    if (!color_img.empty()) ColorImgToArray(color_img, color_array);
     std::vector<Eigen::Vector3d> points;
     std::vector<Eigen::Vector3d> colors;
     for (int i = 0 ; i < original_cloud_array.rows(); ++i) {
         auto p = original_cloud_array.row(i);
         if (p.isZero()) continue;
         points.emplace_back(p.cast<double>());
-        colors.emplace_back(color_array.row(i).cast<double>());
+        if (!color_img.empty()) colors.emplace_back(color_array.row(i).cast<double>());
     }
     auto cloud = std::make_shared<open3d::geometry::PointCloud>();
     cloud->points_ = points;
-    cloud->colors_ = colors;
+    if (!color_img.empty()) cloud->colors_ = colors;
 
-    open3d::visualization::DrawGeometries({cloud}, "PointCloud", 1600, 1200, 1440, 50);
+    open3d::visualization::DrawGeometriesWithEditing({cloud}, "PointCloud", 1600, 1200, 1440, 50);
 }
 
-void SavePc(const std::string filename, Eigen::MatrixXf cloud_array) {
+
+// X Y Z 为r*c的矩阵
+void DrawPc(Eigen::MatrixXf X, Eigen::MatrixXf Y, Eigen::MatrixXf Z) {
+    std::vector<Eigen::Vector3d> points;
+    for (int i = 0 ; i < X.rows(); ++i) {
+        for (int j = 0; j < X.cols(); ++j) {
+            auto p = Z(i, j);
+            if (p==0) continue;
+            points.emplace_back(Eigen::Vector3d(X(i, j), Y(i, j), Z(i, j)));
+        }
+    }
+    auto cloud = std::make_shared<open3d::geometry::PointCloud>();
+    cloud->points_ = points;
+    open3d::visualization::DrawGeometriesWithEditing({cloud}, "PointCloud", 1600, 1200, 1440, 50);
+}
+
+
+void SavePc(const std::string& filename, Eigen::MatrixXf cloud_array) {
     std::vector<Eigen::Vector3d> points;
     for (int i = 0 ; i<cloud_array.rows(); ++i) {
         auto p = cloud_array.row(i);
@@ -94,56 +114,104 @@ void SavePc(const std::string filename, Eigen::MatrixXf cloud_array) {
     open3d::io::WritePointCloudToPLY(filename, *cloud, true);
 }
 
-void PrintVector(vector<int>& v)
-{
-        for (auto e : v)
-        {
-            cout << e << " ";
+/*  在中间的一行和中间的一列上，分别拟合直线，计算离群点的个数
+ *  input:
+ *      Z_matrix : n*n的block
+ *      threshold: 点到直线距离平方的阈值
+ *  */
+int CountJumps(const Eigen::Block<Eigen::MatrixXf> &Z_matrix, float threshold) {
+    int jumps_count = 0;
+    int valid_ind0 = 0, valid_ind1 = 0;
+    float valid_z0 = 0, valid_z1 = 0;
+    // horizontal search, get valid z and ind
+    int middle = Z_matrix.rows() / 2;
+    for (int i = 0; i < Z_matrix.cols(); ++i) {
+        auto z = Z_matrix(middle, i);
+        if (z != 0){
+            valid_z0 = z;
+            valid_ind0 = i;
+            break;
         }
-        cout << endl;
+    }
+    for (int i = Z_matrix.cols()-1; i >= 0; --i) {
+        auto z = Z_matrix(middle, i);
+        if (z != 0){
+            valid_z1 = z;
+            valid_ind1 = i;
+            break;
+        }
+    }
+    if (valid_z0 == 0 or valid_z1 == 0) return 999;
+    float k = (valid_z1 - valid_z0) / (valid_ind1 - valid_ind0);
+    for (int i = valid_ind0; i < valid_ind1; ++i) {
+        auto z = Z_matrix(middle, i);
+        if (z == 0) continue;
+        float predict_z = valid_z0 + k * (i - valid_ind0);
+        if (abs(z-predict_z)>threshold) ++jumps_count;
+    }
+
+    // vertical search, get valid z and ind
+    valid_ind0 = 0, valid_ind1 = 0;
+    valid_z0 = 0, valid_z1 = 0;
+    middle = Z_matrix.cols() / 2;
+    for (int i = 0; i < Z_matrix.rows(); ++i) {
+        auto z = Z_matrix(i, middle);
+        if (z != 0){
+            valid_z0 = z;
+            valid_ind0 = i;
+            break;
+        }
+    }
+    for (int i = Z_matrix.rows()-1; i >= 0; --i) {
+        auto z = Z_matrix(i, middle);
+        if (z != 0){
+            valid_z1 = z;
+            valid_ind1 = i;
+            break;
+        }
+    }
+    if (valid_z0 == 0 or valid_z1 == 0) return 999;
+    k = (valid_z1 - valid_z0) / (valid_ind1 - valid_ind0);
+    for (int i = valid_ind0; i < valid_ind1; ++i) {
+        auto z = Z_matrix(i, middle);
+        if (z == 0) continue;
+        float predict_z = valid_z0 + k * (i - valid_ind0);
+        if (abs(z-predict_z)>threshold) ++jumps_count;
+    }
+
+    return jumps_count;
 }
 
-
-PointsSum PointsSum::AddFour(const PointsSum &a, const PointsSum &b, const PointsSum &c, const PointsSum &d) {
-    PointsSum result;
-    result.sum_x = a.sum_x + b.sum_x + c.sum_x + d.sum_x;
-    result.sum_y = a.sum_y + b.sum_y + c.sum_y + d.sum_y;
-    result.sum_z = a.sum_z + b.sum_z + c.sum_z + d.sum_z;
-    result.sum_xx = a.sum_xx + b.sum_xx + c.sum_xx + d.sum_xx;
-    result.sum_yy = a.sum_yy + b.sum_yy + c.sum_yy + d.sum_yy;
-    result.sum_zz = a.sum_zz + b.sum_zz + c.sum_zz + d.sum_zz;
-    result.sum_xy = a.sum_xy + b.sum_xy + c.sum_xy + d.sum_xy;
-    result.sum_xz = a.sum_xz + b.sum_xz + c.sum_xz + d.sum_xz;
-    result.sum_yz = a.sum_yz + b.sum_yz + c.sum_yz + d.sum_yz;
-    result.num_points = a.num_points + b.num_points + c.num_points + d.num_points;
-    result.jump_cnt = a.jump_cnt + b.jump_cnt + c.jump_cnt + d.jump_cnt;
-    return result;
-}
-
-PlaneParams PointsSum::FitPlane(bool debug) const{
-    g_program_counter++;
-    double mean[3];
-    mean[0] = sum_x / num_points;
-    mean[1] = sum_y / num_points;
-    mean[2] = sum_z / num_points;
+/*  已准备好求和信息的PlaneParams，计算平面参数
+ *      input:
+ *      params: 其中的求和信息已经计算好，只需要计算平面参数，写入params中
+ *  */
+void FitPlaneAlreadyHaveSum(PlaneParams &params) {
+    float mean[3];
+    mean[0] = params.sum_x / params.num_points;
+    mean[1] = params.sum_y / params.num_points;
+    mean[2] = params.sum_z / params.num_points;
     // Expressing covariance as E[PP^t] + E[P]*E[P^T]
-    double cov[3][3] = {
-            {sum_xx/num_points - sum_x/num_points * sum_x / num_points, sum_xy/num_points - sum_x/num_points * sum_y / num_points, sum_xz/num_points - sum_x/num_points * sum_z / num_points},
-            {0,                                   sum_yy/num_points - sum_y/num_points * sum_y / num_points, sum_yz/num_points - sum_y/num_points * sum_z / num_points},
-            {0,                                   0,sum_zz/num_points - sum_z/num_points * sum_z / num_points}
+    float cov[3][3] = {
+            {static_cast<float>(params.sum_xx/params.num_points - params.sum_x/params.num_points * params.sum_x / params.num_points), static_cast<float>(params.sum_xy/params.num_points - params.sum_x/params.num_points * params.sum_y / params.num_points), static_cast<float>(params.sum_xz/params.num_points - params.sum_x/params.num_points * params.sum_z / params.num_points)},
+            {0,                                   static_cast<float>(params.sum_yy/params.num_points - params.sum_y/params.num_points * params.sum_y / params.num_points), static_cast<float>(params.sum_yz/params.num_points - params.sum_y/params.num_points * params.sum_z / params.num_points)},
+            {0,                                   0,static_cast<float>(params.sum_zz/params.num_points - params.sum_z/params.num_points * params.sum_z / params.num_points)}
     };
     cov[1][0] = cov[0][1];
     cov[2][0] = cov[0][2];
     cov[2][1] = cov[1][2];
 
-    Eigen::Map<Eigen::Matrix3d, 0, Eigen::Stride<0, 0>> cov_eigen = Eigen::Map<Eigen::Matrix3d>(cov[0], 3, 3);
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(cov_eigen);
-    Eigen::VectorXd v = es.eigenvectors().col(0);
+    Eigen::Matrix3f cov_eigen;
+    cov_eigen << cov[0][0], cov[0][1], cov[0][2],
+            cov[1][0], cov[1][1], cov[1][2],
+            cov[2][0], cov[2][1], cov[2][2];
 
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> es(cov_eigen);
+    Eigen::VectorXf v = es.eigenvectors().col(0);
 //    Eigen::JacobiSVD<Eigen::MatrixXd> svd(cov_eigen,  Eigen::ComputeFullV);
 //    Eigen::VectorXd v = svd.matrixV().col(2);
 
-    double d, normal[3];
+    float d, normal[3];
     d = -(v[0] * mean[0] + v[1] * mean[1] + v[2] * mean[2]);
     // Enforce normal orientation
     if (d > 0) {
@@ -156,41 +224,122 @@ PlaneParams PointsSum::FitPlane(bool debug) const{
         normal[2] = -v[2];
         d = -d;
     }
-    double min_ev = es.eigenvalues()[0];
+    float min_ev = abs(es.eigenvalues()[0]);
+
+    params.a = normal[0];
+    params.b = normal[1];
+    params.c = normal[2];
+    params.d = d;
+    params.mean_x = mean[0];
+    params.mean_y = mean[1];
+    params.mean_z = mean[2];
+    params.MSE = min_ev;
+}
+/*  从采样的点云中拟合平面
+ *  input:
+ *      sampled_X, sampled_Y, sampled_Z: eigen矩阵的block的引用
+ *      debug_print: 是否打印debug信息
+ *      debug_show_pc: 是否显示点云
+ *  */
+PlaneParams FitPlane(const Eigen::Block<Eigen::MatrixXf> &sampled_X, const Eigen::Block<Eigen::MatrixXf> &sampled_Y, const Eigen::Block<Eigen::MatrixXf> &sampled_Z, bool debug_print, bool debug_show_pc) {
+    double sum_x = sampled_X.sum();
+    double sum_y = sampled_Y.sum();
+    double sum_z = sampled_Z.sum();
+    double sum_xx = (sampled_X.array() * sampled_X.array()).sum();
+    double sum_yy = (sampled_Y.array() * sampled_Y.array()).sum();
+    double sum_zz = (sampled_Z.array() * sampled_Z.array()).sum();
+    double sum_xy = (sampled_X.array() * sampled_Y.array()).sum();
+    double sum_xz = (sampled_X.array() * sampled_Z.array()).sum();
+    double sum_yz = (sampled_Y.array() * sampled_Z.array()).sum();
+    int num_points = sampled_X.rows() * sampled_X.cols();
+
+    float mean[3];
+    mean[0] = sum_x / num_points;
+    mean[1] = sum_y / num_points;
+    mean[2] = sum_z / num_points;
+    // Expressing covariance as E[PP^t] + E[P]*E[P^T]
+    double cov[3][3] = {
+            {sum_xx/num_points - sum_x/num_points*sum_x/num_points, sum_xy/num_points - sum_x/num_points*sum_y/num_points, sum_xz/num_points - sum_x/num_points*sum_z/num_points},
+            {0,sum_yy/num_points - sum_y/num_points*sum_y/num_points, sum_yz/num_points - sum_y/num_points*sum_z/num_points},
+            {0,0, sum_zz/num_points - sum_z/num_points*sum_z/num_points}
+    };
+    cov[1][0] = cov[0][1];
+    cov[2][0] = cov[0][2];
+    cov[2][1] = cov[1][2];
+
+    Eigen::Matrix3f cov_eigen;
+    cov_eigen << cov[0][0], cov[0][1], cov[0][2],
+            cov[1][0], cov[1][1], cov[1][2],
+            cov[2][0], cov[2][1], cov[2][2];
+
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> es(cov_eigen);
+    Eigen::VectorXf v = es.eigenvectors().col(0);
+//    Eigen::JacobiSVD<Eigen::MatrixXd> svd(cov_eigen,  Eigen::ComputeFullV);
+//    Eigen::VectorXd v = svd.matrixV().col(2);
+
+    float d, normal[3];
+    d = -(v[0] * mean[0] + v[1] * mean[1] + v[2] * mean[2]);
+    // Enforce normal orientation
+    if (d > 0) {
+        normal[0] = v[0];
+        normal[1] = v[1];
+        normal[2] = v[2];
+    } else {
+        normal[0] = -v[0];
+        normal[1] = -v[1];
+        normal[2] = -v[2];
+        d = -d;
+    }
+    float min_ev = abs(es.eigenvalues()[0]);
 //    double min_sv = svd.singularValues()(svd.singularValues().size()-1);
 //    double max_sv = svd.singularValues()(0);
 
-    double MSE, score;
-    MSE = min_ev;
-//    score = svd.singularValues()(1) / min_sv;
-
-    if (debug) {
-        cout << "???\n";
+    if (debug_print) {
         cout << "COV eigen: \n" << cov_eigen << endl;
-//        cout << "SingularVals: \n" << svd.singularValues() << endl;
-        cout << "MSE: " << MSE << "\n";
-        cout <<"Score: "<<score<<"\n\n";
+        cout << "MSE: " << min_ev << "\n";
+        cout << "Plane param a b c d: " << normal[0] << " " << normal[1] << " " << normal[2] << " " << d << endl;
     }
-    return PlaneParams{normal[0], normal[1], normal[2], d, mean[0], mean[1], mean[2], MSE, score, num_points, jump_cnt};
+    if (debug_show_pc) {
+        Eigen::MatrixXf temp_x, temp_y, temp_z;
+        temp_x = sampled_X;
+        temp_y = sampled_Y;
+        temp_z = sampled_Z;
+        temp_x.resize(num_points, 1);
+        temp_y.resize(num_points, 1);
+        temp_z.resize(num_points, 1);
+        auto cloud_array = Eigen::MatrixXf(num_points, 3);
+        cloud_array << temp_x, temp_y, temp_z;
+        DrawPc(cloud_array);
+    }
+    return {normal[0], normal[1], normal[2], d, mean[0], mean[1], mean[2], min_ev,
+            sum_x, sum_y, sum_z, sum_xx, sum_yy, sum_zz, sum_xy, sum_xz, sum_yz, num_points};
 }
 
-PointsSum& PointsSum::operator+=(const PointsSum &another) {
-    this->sum_x += another.sum_x;
-    this->sum_y += another.sum_y;
-    this->sum_z += another.sum_z;
-    this->sum_xx += another.sum_xx;
-    this->sum_yy += another.sum_yy;
-    this->sum_zz += another.sum_zz;
-    this->sum_xy += another.sum_xy;
-    this->sum_xz += another.sum_xz;
-    this->sum_yz += another.sum_yz;
-    this->num_points += another.num_points;
-    this->jump_cnt += another.jump_cnt;
-    return *this;
-}
 
-void Waste100us(){
-//    sleep 10ms
-    clock_t start_time = clock();
-    while (clock() - start_time < 100);
+/*  判断两平面是否共面
+ *  input:
+ *      plane_params1, plane_params2: 两个平面的参数
+ *      min_cos_angle_4_merge: 两平面法向量的夹角的cos值的最小值
+ *      distance_thresh_mode: 距离阈值的模式，绝对值还是相对值(相对距离)
+ *      max_merge_distance2_threshold: 距离阈值
+ *  */
+bool IsCoplanar(const PlaneParams &plane_params1, const PlaneParams &plane_params2,
+                double min_cos_angle_4_merge, int distance_thresh_mode, double max_merge_distance2_threshold) {
+    double cos_angle =
+            plane_params1.a * plane_params2.a + plane_params1.b * plane_params2.b + plane_params1.c * plane_params2.c;
+    double distance2 = pow(plane_params1.a * plane_params2.mean_x + plane_params1.b * plane_params2.mean_y +
+                           plane_params1.c * plane_params2.mean_z + plane_params1.d, 2);
+
+    if (cos_angle < min_cos_angle_4_merge) return false;
+
+    if (distance_thresh_mode == PLANE_MERGE_THRESHMODE_ABSOLUTE_MSE && distance2 > max_merge_distance2_threshold)
+        return false;
+
+    if (distance_thresh_mode == PLANE_MERGE_THRESHMODE_DISTANCE_RATIO &&
+        distance2 > max_merge_distance2_threshold *
+                    (plane_params1.mean_x * plane_params1.mean_x + plane_params1.mean_y * plane_params1.mean_y +
+                     plane_params1.mean_z * plane_params1.mean_z))
+        return false;
+
+    return true;
 }
