@@ -1,0 +1,8 @@
+{
+    "data_format": "icl",
+    "data_path": "data/ICL/icl-living-room_cc/",
+    "rgb_prefix": "living_room_traj0_loop/scene_00_",
+    "depth_prefix": "living_room_traj0_loop/scene_00_",
+    "data_frame_num": 1510,
+    "param_file_path": "config/params/params-icl-living-room.json"
+}

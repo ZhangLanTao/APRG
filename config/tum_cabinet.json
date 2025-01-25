@@ -1,0 +1,8 @@
+{
+    "data_format": "tum",
+    "data_path": "data/TUM/full_tum_pioner/",
+    "rgb_prefix": "rgb/",
+    "depth_prefix": "depth/",
+    "data_frame_num": 1510,
+    "param_file_path": "config/tum_pioneer.json"
+}
