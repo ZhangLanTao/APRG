@@ -22,16 +22,28 @@ We recommend using **VS Code Dev Container** to create a development environment
 2. **Build and Launch the Dev Container**:
    - Open the project folder in VS Code.
    - VS Code will detect the `Dockerfile` and suggest reopening in a Dev Container. Follow the prompts to build and open the container.
-
-3. **Compile and Run in the Container**:
+   - To test EVOPS benchmark, edit the `devcontainer.json` file (located under `.devcontainer/devcontainer.json`) to mount your data folder like the following:  
+     ```json  
+     "mounts": [  
+         {  
+             "type": "bind",  
+             "source": "<your dataset path>",  
+             "target": "/workspaces/APRG/data/EVOPS"  
+         }  
+     ]  
+     ```  
+3. **Ensure Configuration Matches Your Dataset**:
+   - Ensure the settings in `config/config_sample.json` match your specific dataset.
+   
+4. **Compile and Run in the Container**:
    - Once inside the container's interactive terminal, compile and run the code as follows:
      ```bash
      mkdir build && cd build
      cmake ..
      make
      cd ..
-     ./build/Run_EVOPS ./config/sample.json
-     ```  
+     ./build/Run_EVOPS ./config/config_sample.json
+     ```
 
 ## Notes
 - Adjust the `Dockerfile` if additional dependencies are required.
