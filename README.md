@@ -20,7 +20,7 @@ For a simple try-out, you can use the pre-built Docker image, which comes with s
       ```
    2. Run the Container:
       ```bash
-      docker run -it --name aprg_sample aprg
+      docker run -it --name aprg_sample lantaozhang/aprg
       ```
    3. Run sample data:
       ```bash
