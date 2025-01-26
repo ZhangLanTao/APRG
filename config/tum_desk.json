@@ -4,5 +4,5 @@
     "rgb_prefix": "rgb/",
     "depth_prefix": "depth/",
     "data_frame_num": 1510,
-    "param_file_path": "config/tum_desk.json"
+    "param_file_path": "params/params-tum-desk.json"
 }

@@ -94,8 +94,11 @@ RUN curl -Lo opencv.zip ${OPENCV_FILE} && \
     cd / && rm -rf opencv*
 
 # When using Dev Container in VSCode, open APRG folder in the container, data volume is auto mounted, so no need to copy data
-# COPY ./include /APRG/include
-# COPY ./src /APRG/src
-# COPY ./CMakeLists.txt /APRG/CMakeLists.txt
-# WORKDIR /APRG
-# RUN mkdir build && cd build && cmake .. && make -j $(nproc --all)
+COPY ./config /APRG/config
+COPY ./data /APRG/data
+COPY ./include /APRG/include
+COPY ./params /APRG/params
+COPY ./src /APRG/src
+COPY ./CMakeLists.txt /APRG/CMakeLists.txt
+WORKDIR /APRG
+RUN mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc --all) && cd ..

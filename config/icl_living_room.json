@@ -4,5 +4,5 @@
     "rgb_prefix": "living_room_traj0_loop/scene_00_",
     "depth_prefix": "living_room_traj0_loop/scene_00_",
     "data_frame_num": 1510,
-    "param_file_path": "config/params/params-icl-living-room.json"
+    "param_file_path": "params/params-icl-living-room.json"
 }
