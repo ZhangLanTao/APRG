@@ -8,11 +8,29 @@ The code depends on the following libraries:
 - [OpenCV](https://opencv.org/)
 - [Eigen3](https://eigen.tuxfamily.org/)
 
-## Recommended Development Environment
+## How to Set Up and Run
 
-We recommend using **VS Code Dev Container** to create a development environment from the provided `Dockerfile`.
+For a simple try-out, you can use the pre-built Docker image, which comes with some sample data and config for convenience. For developers, we recommend using **VS Code Dev Container** to create a development environment from the provided `Dockerfile` and start developing in container.
 
-### Steps to Set Up the Development Environment
+### (option 1) Use Pre-build Docker Image
+
+   1. Pull the provided Docker image from the container registry:
+      ```bash
+      docker pull lantaozhang/aprg
+      ```
+   2. Run the Container:
+      ```bash
+      docker run -it --name aprg_sample aprg
+      ```
+   3. Run sample data:
+      ```bash
+      ./build/Run_EVOPS ./config/config_sample.json
+      ```
+   4. Exit the container, copy the sample data to the host machine, and check out the output in your ~/sample_data folder.
+      ```bash
+      docker cp aprg_sample:/APRG/data/sample_data ~
+      ```
+### (option 2) Set Up the Development Environment
 
 1. **Install Prerequisites**:
    - Install [Docker](https://www.docker.com/).
