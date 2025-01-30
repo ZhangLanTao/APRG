@@ -46,6 +46,7 @@ RUN apt-get clean && \
     v4l-utils \
     zlib1g-dev \
     locales \
+    valgrind\
     && locale-gen en_US.UTF-8 \
     && LC_ALL=en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/* \

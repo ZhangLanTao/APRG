@@ -1,6 +1,6 @@
 {
     "data_format": "icl",
-    "data_path": "data/ICL/icl-living-room_cc/",
+    "data_path": "data/EVOPS/ICL/icl-living-room_cc/",
     "rgb_prefix": "living_room_traj0_loop/scene_00_",
     "depth_prefix": "living_room_traj0_loop/scene_00_",
     "data_frame_num": 1510,

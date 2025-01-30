@@ -1,6 +1,6 @@
 {
     "data_format": "icl",
-    "data_path": "data/ICL/icl-office/",
+    "data_path": "data/EVOPS/ICL/icl-office/",
     "rgb_prefix": "office_room_traj0_loop/scene_00_",
     "depth_prefix": "office_room_traj0_loop/scene_00_",
     "data_frame_num": 1510,
