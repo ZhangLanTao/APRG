@@ -3,6 +3,6 @@
     "data_path": "data/EVOPS/TUM/full_tum_desk/",
     "rgb_prefix": "rgb/",
     "depth_prefix": "depth/",
-    "data_frame_num": 1510,
+    "data_frame_num": 595,
     "param_file_path": "params/params-tum-desk.json"
 }
