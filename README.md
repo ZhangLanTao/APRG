@@ -2,6 +2,12 @@
 
 This is the open-source code for the **APRG (On Review)**.
 
+## Demo
+These are our outputs on ICL and TUM dataset.
+
+![GIF1](<media/ICL livingroom.gif>) ![GIF2](<media/ICL office.gif>) ![GIF3](<media/TUM desk.gif>)
+![GIF4](<media/TUM long office.gif>) ![GIF5](<media/TUM pioneer.gif>) ![GIF6](<media/TUM cabinet.gif>)
+
 ## Dependencies
 
 The code depends on the following libraries:
