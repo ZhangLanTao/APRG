@@ -1,6 +1,6 @@
 # APRG - An Efficient Plane Segmentation Algorithm  
 
-This is the open-source code for the **APRG (On Review)**.
+This is the open-source code for the **APRG (RAL 2025)**.
 
 ## Demo
 These are our outputs on ICL and TUM dataset.
